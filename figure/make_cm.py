@@ -21,6 +21,7 @@ def draw_cm(file_path, output=None):
     cm = cm * 1.0 / cm.sum(axis=0)
     n = cm.shape[0]
     acc = sum(np.diag(cm) * freq)
+    print acc
 
     plt.matshow(cm, cmap=plt.cm.Greys, aspect='auto')
     axes = plt.gca()
