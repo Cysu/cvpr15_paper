@@ -63,59 +63,94 @@ First line of institution2 address\\
 
 %%%%%%%%% ABSTRACT
 \begin{abstract}
-Large-scale strongly supervised datasets are crucial to train deep neural networks for various computer vision problems. Obtaining such well labeled data is usually expensive, but collecting weakly labeled data is much more effortless. In this paper we study how to train a deep neural network to classify objects with limited strong supervisions and massive weakly labeled data. A probabilistic model is proposed to describe the relationship between image data, noisy label and ground truth. We further integrate the model into a deep learning framework. Experiments are conducted on a collected large-scale weakly labeled dataset. The results show that weakly labeled data benefit the training of the deep model, and our approach can further improve the performance.
+Large-scale strongly supervised datasets are crucial to train deep neural networks for various computer vision problems. Obtaining such well labeled data is usually expensive, but collecting web data with noisy labels is much more effortless. In this paper we study how to train a deep neural network to classify objects with a small set of clean annotations and massive noisy labeled data. A probabilistic model is proposed to describe the relationship between image data, noisy label and ground truth. We further integrate the model into a deep learning framework. Experiments are conducted on a collected large-scale web dataset. The results show that noisy labeled data benefit the training of deep neural networks, and exploiting our label noise model can further improve the performance.
 \end{abstract}
 
 %%%%%%%%% BODY TEXT
 \section{Introduction} % (fold)
 \label{sec:introduction}
-Visual classification, which aims at categorizing objects into predefined semantic groups, is a traditional yet fundamental problem in computer vision. Starting from the pioneering work in~\cite{krizhevsky2012imagenet}, researchers have developed various deep learning approaches to solve object classification problem. While state-of-the-art results have been continuously reported~\cite{zeiler2013visualizing,simonyan2014very,szegedy2014going}, all the methods rely on large-scale strongly supervised training dataset~\cite{deng2009imagenet}, which consumes a lot of manpower to label millions of images. In many real-world applications, we can only get limited well labeled data. Training a deep neural network is thus difficult even if we finetune it from a pretrained ImageNet model. However, we can easily get substantial weakly supervised data by crawling images from the Internet and extracting keywords from their surrounding text. For example, product photos on \emph{Amazon} and \emph{Taobao} usually have relatively reasonable title and tags, which can be converted to weak object class and attributes. Thus it drives us to find some effective ways to do visual recognition by utilizing these massive information.
 
-Without losing generality, we focus on the task of clothes recognition, \ie, determining whether an image is about a T-shirt, a sweater, or a dress, \etc. This specific object classification problem draws much attention to many e-commerce companies, since it is a basic building block of products retrieval and recommendation systems.  The major challenge of using weakly labeled data in training classifier is to identify bad samples and keep them from drifting the model. Figure~\ref{fig:overview} shows some examples of label noise. Existing methods try to solve this problem from two aspects. One way is to model the relationship between true label and noisy label, but the model is too simple to fit in real-world applications. The other one exploits semi-supervised learning algorithms (such as label propagation), but their complexities are usually quadratic with the number of samples, thus cannot be applied on large-scale datasets.
+Deep learning with massive amount of supervised training data has recently shown very impressive improvement on multiple image recognition challenges including image classification~\cite{krizhevsky2012imagenet}, attribute learning~\cite{zhang2013panda}, scene classification~\cite{farabet2013learning}, etc. While state-of-the-art results have been continuously reported~\cite{zeiler2013visualizing,simonyan2014very,szegedy2014going}, all these methods requires reliable annotations from millions of images~\cite{deng2009imagenet} which are often expensive and time-consuming to obtain~\cite{deng2009imagenet}, preventing deep models from being quickly trained on new image recognition problems and making it necessary to develop new efficient labeling and training frameworks for deep learning.
+
+One possible solution is to automatically collect large amount of annotations from the Internet web images (i.e. extracting tags from the surrounding texts or keywords from search engines) and directly use them as ground truth to train deep models. Unfortunately, these labels are extremely unreliable due to the various types of noise (i.e. labeling mistakes from annotators or computing errors from extraction algorithms). Many works have shown that these noisy labels could adversely impact the classification accuracy of the induced classifiers [3, 13, 15]. Various noise-robust algorithms are developed but experiments show that performances of classifiers inferred by robust algorithms are still affected by label noise. Other noise cleaning algorithms are developed [1, 3, ], but these approaches are difficult in distinguishing informative hard examples from harmful mislabeled ones. 
+
+Although annotating all the noisy data is costly, it is often easy to obtain a small amount of clean labels. Based on the observation of transferability of deep neural networks, people first initialize the parameters with a model pretrained on a larger yet related dataset [5], and then finetuning on the smaller dataset of specific task. Such methods may better avoid overfitting and utilize the relationships between two datasets. However, we find that training a deep model directly with massive noisy data could achieve better performance than finetuning from a pretrained ImageNet model over a small subset, especially when the relations between the two datasets are weak. Other approaches address the classification problem as semi-supervised learning where noisy labels are discarded [6]. These algorithms usually suffer from model complexity thus cannot be applied on large-scale datasets. 
 
 \begin{figure}[t]
 \begin{center}
 \includegraphics[width=0.9\linewidth]{figure/overview.pdf}
 \end{center}
-\caption{Overview of our method. Weak labels often suffer from pointless (red) or confusing noise (orange). Our model infers true label (green) based on observed image and weak label, as well as CNN predictions about object class and noise type.}
+\caption{Overview of our method. Labels of web images often suffer from different types of noise. Our deep model infers true labels based on observed images and noisy labels. These true labels are then used to supervise the training of CNNs.}
 \label{fig:overview}
 \end{figure}
 
-To conquer this problem, we first study why a weak label goes wrong and conclude two types of label noise:
+Our goal here is to build an end-to-end deep learning system that is capable of training with both limited clean labels and massive amount of noisy labels more effectively. Figure~\ref{fig:overview} shows the general framework of our system. The major challenge of using noisy labeled data is to identify bad samples and keep them from drifting the model training. Intuitively, we have two types of evidence to help make decisions. One comes from the ground truth labels of other similar images, and the other comes from how confusing the input image itself. In this paper, we model these two types of information as latent variables and use them to bridge the semantic gap between our observed image and weak label. Additionally, we introduce two types of label noises explicitly, pure random noise and confusion noise to model the noise more directly. 
+
 \begin{itemize}
-   \item \textbf{Pointless noise} occurs when a weak label has no semantic relationship with its image, for example, the samples in the upper red box of Figure~\ref{fig:overview}. This kind of noise is often caused by either the mismatch between web image and surrounding text, or false conversion from text to label. The noisy label in this case is not acceptable.
+   \item \textbf{Pure random noise} occurs when a weak label has no semantic relationship with its image, for example, the samples in the upper red box of Figure~\ref{fig:overview}. This kind of noise is often caused by either the mismatch between web image and surrounding texts, or false conversion from text to label. The noisy label in this case is not acceptable.
    \item \textbf{Confusing noise} occurs when a weak label is a reasonable object class for its image other than the ground truth one. This kind of noise happens regularly in some sort of images. For example, the knitwear in the lower orange box of Figure~\ref{fig:overview} can be often misclassified as a sweater. However, in real applications, confusion among several related labels is generally acceptable to users.
 \end{itemize}
 
-Our goal is to identify the ground truth label given an image as well as its weak label, and then use the ground truth label as supervision instead of the weak one. Intuitively, we have two kinds of evidence to help us make decision. One comes from the ground truth labels of other similar images, and the other one comes from how confusing is the input image itself. In this paper, we model these two kinds of information as latent variables and use them to bridge the semantic gap between our observed image and weak label. A novel probabilistic model is proposed to build relations among all these factors. We solve the problem by Expectation-Maximization (EM) algorithm and integrate it into a deep learning framework. To validate our approach, we collected a clothes image dataset consisting of about $72,000$ strongly labeled and one million weakly labeled data. Experiments on this dataset show that massive weakly labeled data benefit the training of deep neural networks, and our approach can further improve the performance.
+We propose a novel probabilistic model to capture the relations among all these factors. We solve the problem by Expectation-Maximization (EM) algorithm and integrate it into a deep learning framework. To validate our approach, we collect a clothing classification dataset consisting of around $72,000$ clean labeled and one million noisy labeled data. Experiments on this dataset demonstrate that massive weakly labeled data can benefit the training of deep neural networks even further.
 
-Our contribution comes from two aspects. First, we investigate the cause of weak label in real-world data, and formulate the label noise in a probabilistic model. Second, we integrate the proposed model into a deep learning framework to help it resist bad supervision in training with weakly labeled data.
+Our work is inspired by [7], which also modifies the deep neural networks to train effectively with noisy labeled data. However, their modification is simply implemented by adding a linear layer on top of the softmax layer, which builds on the assumption that label noise is independent of input images. We generalize [7] to a new deep learning framework by allowing the noise is related with input images. We find that by modeling the noise more appropriately, the deep models can benefit even more from noisy labels.
+
+Our main contribution in this paper is a novel end-to-end deep learning framework that models the noisy web data generation on the Internet. The deep learning system is designed to learn to predict noise types, ground truth labels as well as noisy labels. The system is able to learn from a small set of clean annotations with a massive amount of noisy labels and find the best trade-off between using all the data. 
+
+Our contribution comes from three aspects. First, we model label noise generation with a graphical model and further integrate it into the deep learning framework. Second, we study different noise types and model their relations with the images by a deep neural network. Finally, we collect a large scale clothing classification dataset with both noisy labels and clean labels. 
+
+% Visual classification, which aims at categorizing objects into predefined semantic groups, is a traditional yet fundamental problem in computer vision. Starting from the pioneering work in~\cite{krizhevsky2012imagenet}, researchers have developed various deep learning approaches to solve object classification problem. While state-of-the-art results have been continuously reported~\cite{zeiler2013visualizing,simonyan2014very,szegedy2014going}, all the methods rely on large-scale strongly supervised training dataset~\cite{deng2009imagenet}, which consumes a lot of manpower to label millions of images. In many real-world applications, we can only get limited well labeled data. Training a deep neural network is thus difficult even if we finetune it from a pretrained ImageNet model. However, we can easily get substantial weakly supervised data by crawling images from the Internet and extracting keywords from their surrounding text. For example, product photos on \emph{Amazon} and \emph{Taobao} usually have relatively reasonable title and tags, which can be converted to weak object class and attributes. Thus it drives us to find some effective ways to do visual recognition by utilizing these massive information.
+
+% Without losing generality, we focus on the task of clothes recognition, \ie, determining whether an image is about a T-shirt, a sweater, or a dress, \etc. This specific object classification problem draws much attention to many e-commerce companies, since it is a basic building block of products retrieval and recommendation systems.  The major challenge of using weakly labeled data in training classifier is to identify bad samples and keep them from drifting the model. Figure~\ref{fig:overview} shows some examples of label noise. Existing methods try to solve this problem from two aspects. One way is to model the relationship between true label and noisy label, but the model is too simple to fit in real-world applications. The other one exploits semi-supervised learning algorithms (such as label propagation), but their complexities are usually quadratic with the number of samples, thus cannot be applied on large-scale datasets.
+
+
+% To conquer this problem, we first study why a weak label goes wrong and conclude two types of label noise:
+% \begin{itemize}
+%    \item \textbf{Pointless noise} occurs when a weak label has no semantic relationship with its image, for example, the samples in the upper red box of Figure~\ref{fig:overview}. This kind of noise is often caused by either the mismatch between web image and surrounding text, or false conversion from text to label. The noisy label in this case is not acceptable.
+%    \item \textbf{Confusing noise} occurs when a weak label is a reasonable object class for its image other than the ground truth one. This kind of noise happens regularly in some sort of images. For example, the knitwear in the lower orange box of Figure~\ref{fig:overview} can be often misclassified as a sweater. However, in real applications, confusion among several related labels is generally acceptable to users.
+% \end{itemize}
+
+% Our goal is to identify the ground truth label given an image as well as its weak label, and then use the ground truth label as supervision instead of the weak one. Intuitively, we have two kinds of evidence to help us make decision. One comes from the ground truth labels of other similar images, and the other one comes from how confusing is the input image itself. In this paper, we model these two kinds of information as latent variables and use them to bridge the semantic gap between our observed image and weak label. A novel probabilistic model is proposed to build relations among all these factors. We solve the problem by Expectation-Maximization (EM) algorithm and integrate it into a deep learning framework. To validate our approach, we collected a clothes image dataset consisting of about $72,000$ strongly labeled and one million weakly labeled data. Experiments on this dataset show that massive weakly labeled data benefit the training of deep neural networks, and our approach can further improve the performance.
+
+% Our contribution comes from two aspects. First, we investigate the cause of weak label in real-world data, and formulate the label noise in a probabilistic model. Second, we integrate the proposed model into a deep learning framework to help it resist bad supervision in training with weakly labeled data.
 
 % section related_work (end)
 
 \section{Related Work} % (fold)
 \label{sec:related_work}
-Various methods have been proposed to handle label noise in different problem settings. Our work is inspired by~\cite{sukhbaatar2014learning}, where they linearly map the probability distribution of the true label to that of the noisy label. But their assumption --- noisy label and input image are conditionally independent given the true label --- is too strong. It cannot figure out whether an observed label is correct or not. Our proposed method overcomes this problem by first estimating how likely an image suffers from pointless or confusing noise. And then predicting the true label based on this information and our observed noisy label.
 
-Other methods model noisy labels in different context, \eg, visual attributes annotation~\cite{vahdat2013handling}, or roads recognition in aerial images~\cite{mnih2012learning}. It is non-trivial to generalize their approaches to solver our problem, \ie, multi-class object classification.
+\noindent
+\textbf{Semi-supervised learning:} Apart from modeling label noise explicitly, some semi-supervised learning algorithms are developed to utilize weakly labeled or even unlabeled data. Label Propagation method~\cite{zhu2002learning} explicitly uses ground truths of well labeled data to classify unlabeled samples. However, it suffers from computing pairwise distance, which has quadratic complexity with the number of data samples and cannot be applied on large-scale datasets. Weston \etal~\cite{weston2012deep} proposed to embed a pairwise loss in the middle layer of a deep neural network, which benefits the learning of discriminative features. But they need extra information about whether a pair of unlabeled images belong to same class, which cannot be obtained in our problem.
 
-Apart from modeling label noise explicitly, some semi-supervised learning algorithms are developed to utilize weakly labeled or even unlabeled data. Label Propagation method~\cite{zhu2002learning} explicitly uses ground truths of well-labeled data to classify unlabeled samples. However, it suffers from computing pairwise distance, which has quadratic complexity with the number of data samples and cannot be applied on large-scale datasets. Weston \etal~\cite{weston2012deep} proposed to embed a pairwise loss in the middle layer of a deep neural network, which benefits the learning of discriminative features. But they need extra information about whether a pair of unlabeled images belong to same class, which cannot be obtained in our problem.
+\noindent
+\textbf{Transfer learning:} The success of Convolutional Neural Networks (CNNs) lies in their capability of learning rich and hierarchical image features. However, the model parameters cannot be properly learned when training data is not enough. Researchers proposed to conquer this problem by first initializing the CNN parameters with a model pretrained on a larger yet related dataset, and then finetuning the CNN on the smaller dataset of specific task~\cite{krizhevsky2012imagenet,oquab2013learning,azizpour2014generic}. Nevertheless, this kind of transfer learning scheme could be suboptimal when the two tasks are just loosely related. In our case of clothes recognition, we show that training a deep model directly with massive weakly label data achieves better performance compared with finetuning from a ImageNet pretrained model.
 
-The success of Convolutional Neural Networks (CNNs) lies in their capability of learning rich and hierarchical image features. However, the model parameters cannot be properly learned when training data is not enough. Researchers proposed to conquer this problem by first initializing the CNN parameters with a model pretrained on a larger yet related dataset, and then finetuning the CNN on the smaller dataset of specific task~\cite{krizhevsky2012imagenet,oquab2013learning,azizpour2014generic}. Nevertheless, this kind of transfer learning scheme could be suboptimal when the two tasks are just loosely related. In our case of clothes recognition, we show that training a deep model directly with massive weakly label data achieves better performance compared with finetuning from a ImageNet pretrained model.
+\noindent
+\textbf{Noise Modeling with deep learning:} Various methods have been proposed to handle label noise in different problem settings, but there are very few works about deep learning from noisy labels~\cite{mnih2012learning,sukhbaatar2014learning,vahdat2013handling}. ~\cite{mnih2012learning} builds a simple noisy model for aerial images but only consider binary classification. [9] assumes label noise is independent from the true class label which is a simple and a specific case. [7] generalizes from [9 11] by considering multi-class classification and modeling class dependent noise, but they assume the noise is independent from source images, ignoring the hardness of labeling different images.
+
+% Various methods have been proposed to handle label noise in different problem settings. Our work is inspired by~\cite{sukhbaatar2014learning}, where they linearly map the probability distribution of the true label to that of the noisy label. But their assumption --- noisy label and input image are conditionally independent given the true label --- is too strong. It cannot figure out whether an observed label is correct or not. Our proposed method overcomes this problem by first estimating how likely an image suffers from pointless or confusing noise. And then predicting the true label based on this information and our observed noisy label.
+
+% Other methods model noisy labels in different context, \eg, visual attributes annotation~\cite{vahdat2013handling}, or roads recognition in aerial images~\cite{mnih2012learning}. It is non-trivial to generalize their approaches to solver our problem, \ie, multi-class object classification.
+
+% Apart from modeling label noise explicitly, some semi-supervised learning algorithms are developed to utilize weakly labeled or even unlabeled data. Label Propagation method~\cite{zhu2002learning} explicitly uses ground truths of well-labeled data to classify unlabeled samples. However, it suffers from computing pairwise distance, which has quadratic complexity with the number of data samples and cannot be applied on large-scale datasets. Weston \etal~\cite{weston2012deep} proposed to embed a pairwise loss in the middle layer of a deep neural network, which benefits the learning of discriminative features. But they need extra information about whether a pair of unlabeled images belong to same class, which cannot be obtained in our problem.
+
+% The success of Convolutional Neural Networks (CNNs) lies in their capability of learning rich and hierarchical image features. However, the model parameters cannot be properly learned when training data is not enough. Researchers proposed to conquer this problem by first initializing the CNN parameters with a model pretrained on a larger yet related dataset, and then finetuning the CNN on the smaller dataset of specific task~\cite{krizhevsky2012imagenet,oquab2013learning,azizpour2014generic}. Nevertheless, this kind of transfer learning scheme could be suboptimal when the two tasks are just loosely related. In our case of clothes recognition, we show that training a deep model directly with massive weakly label data achieves better performance compared with finetuning from a ImageNet pretrained model.
 
 % section related_work (end)
 
 \section{Label Noise Model} % (fold)
 \label{sec:label_noise_model}
-We target on the problem of learning a classifier from a set of images with noisy labels. To be specific, we have a noisy labeled dataset $\mathcal{D}_n=\left\{\left(\vec{x}^{(1)}, \tilde{y}^{(1)}\right), \dots, \left(\vec{x}^{(N)}, \tilde{y}^{(N)}\right)\right\}$ with $n$-th image $\vec{x}^{(n)}$ and its corresponding noisy label $\tilde{y}^{(n)} \in \{1,\dots,L\}$, where $L$ is the number of classes. Based on previous analysis of the noise types, we describe how the noisy label is generated by using a probabilistic graphical model shown in Figure~\ref{fig:noise_pgm}. Despite the observed image $\vec{x}$ and the noisy label $\tilde{\vec{y}}$, we exploit two discrete latent variables --- $\vec{y}$ and $\vec{z}$ --- to represent the ground truth and the type of label noise, respectively. Both $\tilde{\vec{y}}$ and $\vec{y}$ are $L$-dimensional binary random variables in 1-of-$L$ fashion, \ie, only one element is equal to 1 while others are all 0.
+We target on the problem of learning a classifier from a set of images with noisy labels. To be specific, we have a noisy labeled dataset $\mathcal{D}_n=\left\{\left(\vec{x}^{(1)}, \tilde{y}^{(1)}\right), \dots, \left(\vec{x}^{(N)}, \tilde{y}^{(N)}\right)\right\}$ with $n$-th image $\vec{x}^{(n)}$ and its corresponding noisy label $\tilde{y}^{(n)} \in \{1,\dots,L\}$, where $L$ is the number of classes. Based on previous analysis of the noise types, we describe how the noisy label is generated by using a probabilistic graphical model shown in Figure~\ref{fig:noise_pgm}.
 
-\begin{figure}[t]
+\begin{figure}[h!]
 \begin{center}
-\includegraphics[width=0.6\linewidth]{figure/pgm.pdf}
+\includegraphics[width=0.5\linewidth]{figure/pgm.pdf}
 \end{center}
 \caption{Probabilistic graphical model of label noise}
 \label{fig:noise_pgm}
 \end{figure}
+
+Despite the observed image $\vec{x}$ and the noisy label $\tilde{\vec{y}}$, we exploit two discrete latent variables --- $\vec{y}$ and $\vec{z}$ --- to represent the ground truth and the type of label noise, respectively. Both $\tilde{\vec{y}}$ and $\vec{y}$ are $L$-dimensional binary random variables in 1-of-$L$ fashion, \ie, only one element is equal to 1 while others are all 0.
 
 On the other hand, the latent variable $\vec{z}$ representing label noise type is also an 1-of-3 binary random variable. We assign three semantic meanings to each possible state of $\vec{z}$:
 \begin{enumerate}
@@ -189,21 +224,21 @@ Notice that we do not set parameters to the conditional probability $p(\tilde{\v
 
 We estimate $\mat{C}$ on a relatively small dataset $\mathcal{D}_c = \{(\vec{x},\vec{y},\tilde{\vec{y}})\}_N$, where we have $N$ images with both clean and noisy label. As prior information about $\vec{z}$ is not available, we just solve the following optimization problem:
 \begin{equation}
-    \max_{\mat{C},\vec{z}^{(1)},\cdots,\vec{z}^{(N)}} \sum_{i=1}^N p(\tilde{\vec{y}}^{(N)}|\vec{y}^{(N)},\vec{z}^{(N)})
+    \max_{\mat{C},\vec{z}^{(1)},\cdots,\vec{z}^{(N)}} \sum_{i=1}^N \log p(\tilde{\vec{y}}^{(N)}|\vec{y}^{(N)},\vec{z}^{(N)})
 \end{equation}
 Obviously, sample $i$ contributes nothing to the optimal $\mat{C}^*$ if $\vec{y}^{(i)}$ and $\tilde{\vec{y}}^{(i)}$ are equal. So that we ignore those samples and reinterpret the problem in another form by exploiting Eq~\ref{eq:likelihood}:
 \begin{equation}
 \begin{aligned}
 \max_{\mat{C},\vec{t}} \quad & E=\sum_{i=1}^{N'} \log \alpha^{\vec{t}_i} + \log (\tilde{\vec{y}}^{(i)T} \mat{C} \vec{y}^{(i)})^{1-\vec{t}_i}\\
-\text{subject to} \quad & \mat{C} \text{ is a stochastic matrix of size } K\times K \\
+\text{subject to} \quad & \mat{C} \text{ is a stochastic matrix of size } L\times L \\
                     & \vec{t} \in \{0,1\}^{N'}
 \end{aligned}
 \end{equation}
 where $\alpha=\frac{1}{L-1}$ and $N'$ is the number of remaining samples. The semantic meaning of the above formulation is that we need to assign each $(\vec{y},\tilde{\vec{y}})$ pair the optimal noise type, while finding the optimal $\mat{C}$ simultaneously.
 
-Next, we will show that the problem can be solved by a simple yet efficient algorithm in $O(N'+K^2)$ time complexity. Before we introduce the algorithm itself, some theorems need to be proved. Denote the optimal solution by $\mat{C}^*$ and $\vec{t}^*$
+Next, we will show that the problem can be solved by a simple yet efficient algorithm in $O(N'+L^2)$ time complexity. Before we introduce the algorithm itself, some theorems need to be proved. Denote the optimal solution by $\mat{C}^*$ and $\vec{t}^*$
 \begin{lemma}
-$\mat{C}^*_{ij} \neq 0 \Rightarrow \mat{C}^*_{ij} > \alpha, \forall i,j \in \{1,\dots,K\}$
+$\mat{C}^*_{ij} \neq 0 \Rightarrow \mat{C}^*_{ij} > \alpha, \forall i,j \in \{1,\dots,L\}$
 \end{lemma}
 \begin{proof}
 Suppose there exists some $i,j$ such that $0 < \mat{C}^*_{ij} \leq \alpha$. Then we conduct following operations. First, we set $\mat{C}^*_{ij}=0$ while adding its original value to other elements in column $j$. Second, for all the samples $n$ where $\tilde{\vec{y}}^{(n)}_i=1$ and $\vec{y}^{(n)}_j=1$, we set $\vec{t}_n$ to 1. The resulting $E$ is always greater than the original one, which leads to a contradiction.
@@ -221,42 +256,51 @@ $\tilde{\vec{y}}^{(i)T} \mat{C}^* \vec{y}^{(i)} > \alpha \Leftrightarrow \vec{t}
 The first part is straight forward. For the second part, $\vec{t}^*_i=1$ implies $\tilde{\vec{y}}^{(i)T} \mat{C}^* \vec{y}^{(i)} \leq \alpha$. By using Lemma 1 we know that $\tilde{\vec{y}}^{(i)T} \mat{C}^* \vec{y}^{(i)} = 0$.
 \end{proof}
 
-Notice that if the true label of an image is class $i$ while the noisy label is class $j$, then it can only affect the value of $\mat{C}_{ij}$. Thus each column of $\mat{C}$ can be optimized separately. Theorem 1 further shows that samples with same pair of $(\tilde{\vec{y}},\vec{y})$ share a same noise type. Then what really matters is the frequency of each of the $K\times K$ pairs $(\tilde{\vec{y}},\vec{y})$. Considering a particular column $\vec{c}$, suppose there are $M$ samples affecting this column. We can count the frequency of noisy label class 1 to $K$ as $m_1,\dots,m_K$ and might as well set $m_1\geq m_2\geq \cdots \geq m_K$. The problem is then converted to
+Notice that if the true label of an image is class $i$ while the noisy label is class $j$, then it can only affect the value of $\mat{C}_{ij}$. Thus each column of $\mat{C}$ can be optimized separately. Theorem 1 further shows that samples with same pair of $(\tilde{\vec{y}},\vec{y})$ share a same noise type. Then what really matters is the frequency of each of the $L\times L$ pairs $(\tilde{\vec{y}},\vec{y})$. Considering a particular column $\vec{c}$, suppose there are $M$ samples affecting this column. We can count the frequency of noisy label class 1 to $L$ as $m_1,\dots,m_L$ and might as well set $m_1\geq m_2\geq \cdots \geq m_L$. The problem is then converted to
 \begin{equation}
 \begin{aligned}
-\max_{\vec{c},\vec{t}} \quad & E=\sum_{k=1}^{K} m_k \left(\log \alpha^{\vec{t}_k} + \log \mat{c}_k^{1-\vec{t}_k}\right)\\
-\text{subject to} \quad & \vec{c} \in [0,1]^K, \sum_{k=1}^{K} \vec{c}_k = 1 \\
-                    & \vec{t} \in \{0,1\}^{K}
+\max_{\vec{c},\vec{t}} \quad & E=\sum_{k=1}^{L} m_k \left(\log \alpha^{\vec{t}_k} + \log \mat{c}_k^{1-\vec{t}_k}\right)\\
+\text{subject to} \quad & \vec{c} \in [0,1]^L, \sum_{k=1}^{L} \vec{c}_k = 1 \\
+                    & \vec{t} \in \{0,1\}^{L}
 \end{aligned}
 \end{equation}
 
+
+\begin{figure*}
+\begin{center}
+\includegraphics[width=0.9\linewidth]{figure/diagram.pdf}
+\end{center}
+\caption{System diagram of our proposed method. Two CNNs are exploited to predict object class $p(\vec{y}|\vec{x})$ and noise type $p(\vec{z}|\vec{x})$ respectively. A label noise model layer infers the ground truths according to CNNs' results and the observed noisy label. The ground truth is then used to supervise the CNNs. A separate strongly labeled dataset is also utilized to prevent the model from drifting away.}
+\label{fig:framework}
+\end{figure*}
+
 Due to the rearrangement inequality, we can prove that in the optimal solution,
 \begin{equation}
-    \max(\alpha,\vec{c}^*_1) \geq \max(\alpha,\vec{c}^*_2) \geq \cdots \geq \max(\alpha,\vec{c}^*_K)
+    \max(\alpha,\vec{c}^*_1) \geq \max(\alpha,\vec{c}^*_2) \geq \cdots \geq \max(\alpha,\vec{c}^*_L)
 \end{equation}
-Then by using Theorem 2, there must exist a $k^* \in \{1,\dots,K\}$ such that
+Then by using Theorem 2, there must exist a $k^* \in \{1,\dots,L\}$ such that
 \begin{equation} \label{eq:opt_t}
 \begin{aligned}
     &\vec{t}^*_i = 0, i = 1,\dots,k^* \\
-    &\vec{t}^*_i = 1, i = k^*+1,\dots,K
+    &\vec{t}^*_i = 1, i = k^*+1,\dots,L
 \end{aligned}
 \end{equation}
 This also implies that only the first $k^*$ elements of $\vec{c}^*$ have nonzero values (greater than $\alpha$ actually). Furthermore, if $k^*$ is known, finding the optimal $\vec{c}^*$ is to solve the following problem:
 \begin{equation}
 \begin{aligned}
 \max_{\vec{c}} \quad & E=\sum_{k=1}^{k^*} m_k \log \mat{c}_k\\
-\text{subject to} \quad & \vec{c} \in [0,1]^K, \sum_{k=1}^{k^*} \vec{c}_k = 1
+\text{subject to} \quad & \vec{c} \in [0,1]^L, \sum_{k=1}^{k^*} \vec{c}_k = 1
 \end{aligned}
 \end{equation}
 whose solution is
 \begin{equation} \label{eq:opt_c}
 \begin{aligned}
     &\vec{c}^*_i = \frac{m_i}{\sum_{k=1}^{k^*}{m_k}}, i = 1,\dots,k^* \\
-    &\vec{c}^*_i = 0, i = k^*+1,\dots,K
+    &\vec{c}^*_i = 0, i = k^*+1,\dots,L
 \end{aligned}
 \end{equation}
 
-The above analysis leads to a simple algorithm. We enumerate $k^*$ from 1 to $K$. For each $k^*$, $\vec{t}^*$ and $\vec{c}^*$ are computed by using Eq~\eqref{eq:opt_t} and~\eqref{eq:opt_c}, respectively. Then we evaluate the objective function $E$ and record the best solution.
+The above analysis leads to a simple algorithm. We enumerate $k^*$ from 1 to $L$. For each $k^*$, $\vec{t}^*$ and $\vec{c}^*$ are computed by using Eq~\eqref{eq:opt_t} and~\eqref{eq:opt_c}, respectively. Then we evaluate the objective function $E$ and record the best solution.
 
 
 % subsection confusion_estimation (end)
@@ -265,13 +309,6 @@ The above analysis leads to a simple algorithm. We enumerate $k^*$ from 1 to $K$
 
 \section{Deep Learning from Noisy Labels} % (fold)
 \label{sec:weak_label_deep_learning}
-\begin{figure*}
-\begin{center}
-\includegraphics[width=0.9\linewidth]{figure/diagram.pdf}
-\end{center}
-\caption{System diagram of our proposed method. Two CNNs are exploited to predict object class $p(\vec{y}|\vec{x})$ and noise type $p(\vec{z}|\vec{x})$ respectively. A label noise model layer infers the ground truths according to CNNs' results and the observed noisy label. The ground truth is then used to supervise the CNNs. A separate strongly labeled dataset is also utilized to prevent the model from drifting away.}
-\label{fig:framework}
-\end{figure*}
 
 We integrate the proposed label noise model into a deep learning framework. As demonstrated in Figure~\ref{fig:framework}, we predict the probability $p(\vec{y}|\vec{x})$ and $p(\vec{z}|\vec{x})$ by using two independent CNNs. Moreover, we append a label-noise-model layer at the end, which takes as input the CNNs' prediction scores and the observed noisy label. Stochastic Gradient Ascent (SGA) with backpropagation technique is used to approximately optimize the whole network. In each forward pass, the label-noise-model layer computes the posterior of latent variables according to Eq~\eqref{eq:posterior}. While in the backward pass, it computes the gradients according to Eq~\eqref{eq:gradient}.
 
@@ -336,9 +373,9 @@ We integrate the proposed label noise model into a deep learning framework. As d
 
 Directly training the whole network with random initialization is impractical, because the posterior computation could be totally wrong. Therefore, we need to pretrain each CNN component with strongly supervised data. Gathering ground truth object classes is straight forward, since we can just manually label some images by expert. The resulting strongly labeled dataset $\mathcal{D}_c$ can be directly used for training the network that predicts $p(\vec{y}|\vec{x})$. On the other hand, although off-the-shelf supervision for $p(\vec{z}|\vec{x})$ is not available, we can heuristically generate some data by utilizing the images having both strong and noisy labels. For each sample, we choose as ground truth the $\vec{z}$ that maximizes the likelihood in Eq~\eqref{eq:likelihood}.
 
-After both the CNN components are properly pretrained, we can start training the whole network with massive noisy labeled data. However, some practical issues need to be further discussed. First, if we merely use noisy labels, we will lose precious knowledge that we have gained before and the model could be drifted. Therefore, we need to mix strongly label data together in to our training set, which is depicted in Figure~\ref{fig:framework} as the extra supervisions for the two CNN components. Then each CNN receives two kinds of gradients, one is from the strongly supervised data and the other is from the weakly supervised data. We denote them by $\Delta_c$ and $\Delta_n$, respectively. A potential problem is that $|\Delta_c| \ll |\Delta_n|$, because clean data is much less than the noisy data. To deal with this problem, we bootstrap the strongly labeled data $\mathcal{D}_c$ to half amount of the noisy data $\mathcal{D}_n$. This upsampling process brings another advantage --- the gradients we calculated in each mini-batch are much more stable.
+After both the CNN components are properly pretrained, we can start training the whole network with massive noisy labeled data. However, some practical issues need to be further discussed. First, if we merely use noisy labels, we will lose precious knowledge that we have gained before and the model could be drifted. Therefore, we need to mix strongly label data together in to our training set, which is depicted in Figure~\ref{fig:framework} as the extra supervisions for the two CNN components. Then each CNN receives two kinds of gradients, one is from the clean labeled data and the other is from the noisy labeled data. We denote them by $\Delta_c$ and $\Delta_n$, respectively. A potential problem is that $|\Delta_c| \ll |\Delta_n|$, because clean data is much less than the noisy data. To deal with this problem, we bootstrap the clean data $\mathcal{D}_c$ to half amount of the noisy data $\mathcal{D}_n$. This upsampling process brings another advantage --- the gradients we calculated in each mini-batch are much more stable.
 
-Our proposed model has the ability to figure out the ground truth label given the image and its noisy label. From the perspective of information, our model predicts from two kinds of clues: what are the true labels for other similar images; and how confusing is the input image itself. Label Propagation method~\cite{zhu2002learning} explicitly uses the first kind of information, while we implicitly capture it with a discriminative deep model. Meanwhile, we exploit the second kind of information to bridge the semantic gap between the image and its possible noisy labels.
+Our proposed method has the ability to figure out the ground truth label given the image and its noisy label. From the perspective of information, our model predicts from two kinds of clues: what are the true labels for other similar images; and how confusing is the input image itself. Label Propagation method~\cite{zhu2002learning} explicitly uses the first kind of information, while we implicitly capture it with a discriminative deep model. Meanwhile, we exploit the second kind of information to bridge the semantic gap between the image and its possible noisy labels.
 % section weak_label_deep_learning (end)
 
 \section{Experiments} % (fold)
@@ -346,9 +383,9 @@ Our proposed model has the ability to figure out the ground truth label given th
 
 \subsection{Dataset} % (fold)
 \label{sub:dataset}
-We build a large-scale clothes dataset by crawling images and their surrounding text from some online shopping websites. The surrounding text is valuable, because it usually contains several keywords that can be further converted to visual tags. Specific to our task of clothes classification, we define $14$ classes: T-shirt, Shirt, Knitwear, Chiffon, Sweater, Coat, Windbreaker, Jacket, Down Coat, Suit, Shawl, Dress, Vest, and Underwear.
+We build a large-scale clothes dataset by crawling images and their surrounding texts from some online shopping websites. These surrounding texts are valuable, because they usually contain several keywords that can be further converted to visual tags. Specific to our task of clothes classification, we define $14$ classes: T-shirt, Shirt, Knitwear, Chiffon, Sweater, Coat, Windbreaker, Jacket, Down Coat, Suit, Shawl, Dress, Vest, and Underwear.
 
-In order to learn a clothes classifier and evaluate its performance, we manually label a small part of all the images and split it into training ($\mathcal{D}_c$), validation and testing sets. Meanwhile the remaining data construct the noisy labeled training dataset $\mathcal{D}_n$. A crucial data preprocessing step is to remove near duplicate images from $\mathcal{D}_c$ and $\mathcal{D}_n$, which ensures the reliability of our testing protocol. The size of training datasets are $|\mathcal{D}_c| = 47570$ and $|\mathcal{D}_n| = 1.5M$, while validation and testing set consist of 14,313 and 10,526 images respectively. The confusion matrix between clean and noisy labels are presented in Figure~\ref{fig:cm_strong_weak}. We can see that the overall accuracy is only $61.54\%$, which means that the labels converted from surrounding text are quite noisy.
+In order to learn a clothes classifier and evaluate its performance, we manually label a small part of all the images and split it into training ($\mathcal{D}_c$), validation and test sets. Meanwhile the remaining data construct the noisy labeled training dataset $\mathcal{D}_n$. A crucial data preprocessing step is to remove near duplicate images from $\mathcal{D}_c$ and $\mathcal{D}_n$, which ensures the reliability of our test protocol. The size of training datasets are $|\mathcal{D}_c| = 47570$ and $|\mathcal{D}_n| = 1.5M$, while validation and test set consist of 14,313 and 10,526 images respectively. The confusion matrix between clean and noisy labels are presented in Figure~\ref{fig:cm_strong_weak}. We can see that the overall accuracy is only $61.54\%$, which means that the labels converted from surrounding texts are quite noisy.
 
 \begin{figure}[t]
 \begin{center}
@@ -364,9 +401,9 @@ In order to learn a clothes classifier and evaluate its performance, we manually
 \label{sub:evaluation}
 The effectiveness of our model is validated based on a series of experiments. We exploit the AlexNet~\cite{krizhevsky2012imagenet} as our baseline model, which consists of five convolutional layers and three fully connected layers. Although recent models may have better learning capability, we choose AlexNet since it is well studied and much easier to be reimplemented (see the \texttt{bvlc\_reference\_caffenet}\footnote{\url{http://caffe.berkeleyvision.org/model_zoo.html}}).
 
-We also implement the bottom up method introduced in~\cite{sukhbaatar2014learning}. Briefly speaking, they proposed a noise model with the assumption that a noisy label is only related to its true label. The relation is modeled by a confusion matrix $Q$ whose values can be easily obtained as Figure~\ref{fig:cm_strong_weak} in our problem.
+We also implement the bottom up method introduced in~\cite{sukhbaatar2014learning}. Briefly speaking, they proposed a noise model with the assumption that a noisy label is only related to its true label. The relation is built by a confusion matrix $Q$ whose values can be easily obtained as Figure~\ref{fig:cm_strong_weak} in our problem.
 
-We list all the models and training strategies to be compared in Table~\ref{tab:models}.  In general, we set the initial learning rate to be $0.001$ and is multiplied by $0.1$ every $50000$ iterations. For each method, we keep training the model until it converges. Classification accuracies on both the validation and testing set are presented in Table~\ref{tab:accuracy}.
+We list all the models and training strategies to be compared in Table~\ref{tab:models}.  In general, we set the initial learning rate to be $0.001$ and is multiplied by $0.1$ every $50000$ iterations. For each method, we keep training the model until it converges. Classification accuracies on both the validation and test set are presented in Table~\ref{tab:accuracy}.
 
 \begin{table}
 \begin{center}
@@ -392,11 +429,23 @@ We list all the models and training strategies to be compared in Table~\ref{tab:
 \label{tab:models}
 \end{table}
 
+\begin{figure*}
+\begin{center}
+\end{center}
+\includegraphics[width=1.0\linewidth]{figure/model_output.pdf}
+\caption{\textbf{Examples of model predictions}. The information layout in each block is illustrated in the top-left one.}
+\label{fig:model_output}
+\end{figure*}
+
+From row 1 we can see that when only a small amount of strongly supervised data is provided to train the deep neural network, the parameters cannot be learned properly and thus results in a bad performance. To cope with this problem, finetuning from a model pretrained on related but much larger dataset can significantly improve the accuracy, which is illustrated in the result of model \#2. This is a commonly used technique to train a deep model with limited data for specific task.
+
+However, this transfer learning scheme may still suffer from suboptimal model parameters if the datasets for pretraining and finetuning are loosely related, just like the clothes vs. general objects in our case. We see from row 3 that better performance can be achieved when we train the same model with random initialization on massive data with label noise, but treat noisy labels just as ground truth. Model \#4 further improves the accuracy by initializing with ImageNet pretrained model.
+
 \begin{table}
 \begin{center}
 \begin{tabular}{c|c|c}
 \hline
-\# & Validation Accuracy & Testing Accuracy \\
+\# & Validation Accuracy & Test Accuracy \\
 \hline\hline
 1 & 64.28\% & 64.54\% \\
 \hline
@@ -412,28 +461,17 @@ We list all the models and training strategies to be compared in Table~\ref{tab:
 \hline
 \end{tabular}
 \end{center}
-\caption{Classification accuracies on validation and testing set}
+\caption{Classification accuracies on validation and test set}
 \label{tab:accuracy}
 \end{table}
 
-From row 1 we can see that when only a small amount of supervised data is provided to train the deep neural network, the parameters cannot be learned properly and thus results in a bad performance. To cope with this problem, finetuning from a model pretrained on related but much larger dataset can significantly improve the accuracy, which is illustrated in the result of model \#2. This is a commonly used technique to train a deep model with limited data for specific task.
 
-However, this transfer learning scheme may still suffer from suboptimal model parameters if the datasets for pretraining and finetuning are loosely related, just like the clothes vs. general object in our case. We see from row 3 that better performance can be achieved when we train the same model with random initialization on massive data with label noise, but treat noisy labels just as ground truth. Model \#4 further improves the accuracy by initializing with ImageNet pretrained model.
-
-Row 5 and 6 show the effect of handling label noise. While model \#5 is only $0.4\% \sim 0.9\%$ better than the baseline model \#4, our proposed method gains improvement of $2.1\% \sim 2.9\%$. Since model \#5 assumes the noise only relates to true label, which may not be appropriate in our problem. On the contrary, our model predicts the noise type from the image itself. We will discuss about it in the following section.
+Row 5 and 6 show the effect of handling label noise. While model \#5 is only $0.4\% \sim 0.9\%$ better than the baseline model \#4, our proposed method gains improvement of $2.1\% \sim 2.9\%$. Since model \#5 assumes that the noisy label only relates to the ground truth, which may not be appropriate in our problem. On the contrary, our model predicts the noise type from the image itself. We will discuss about it in the following section.
 % subsection evaluation (end)
 
 \subsection{Effect of Noise Estimation} % (fold)
 \label{sub:effect_of_noise_estimation}
-In order to understand the way our model handles noisy labels, we demonstrate several examples in Figure~\ref{fig:model_output}. We can see that given a noisy label, our model could exploit its current prediction to correct the noise by setting a large weight to the true label, and then use it as supervision instead of the noisy one. Another interesting observation is that if $p(\vec{y}|\vec{x})$ or $p(\vec{z}|\vec{x})$ goes wrong as shown in the top-right and bottom-left block respectively, the model can still figure out the correct label.
-
-\begin{figure*}
-\begin{center}
-\end{center}
-\includegraphics[width=1.0\linewidth]{figure/model_output.pdf}
-\caption{\textbf{Examples of model predictions}. The information layout in each block is illustrated in the top-left one.}
-\label{fig:model_output}
-\end{figure*}
+In order to understand the way our model handles noisy labels, we demonstrate several examples in Figure~\ref{fig:model_output}. We can see that given a noisy label, our model could exploit its current prediction to correct the noise by setting a large weight to the true label, and then use it as supervision instead of the noisy one. Another interesting observation is that if $p(\vec{y}|\vec{x})$ or $p(\vec{z}|\vec{x})$ goes wrong as shown in the top-right and bottom-left block respectively, our model can still figure out the correct label.
 
 Next we explain the meaning of $p(\vec{z}|\vec{x})$ by taking a look at our model's prediction on samples drawn from the clean label class ``Coat''. As shown in Figure~\ref{fig:noise_cluster}, the noisy label is not simply related to the ground truth. On the contrary, images that have high probability of confusing noise tend to share similar visual patterns. This observation indicates that $p(\vec{z}|\vec{x})$ is a property of an image itself representing how confusing the image is. Our model is trained to capture these information and exploit them to clarify the noisy labels. Figure~\ref{fig:noise_prediction_rp} further shows the rank-precision curve of our model's noise prediction. We can see that nearly $80\%$ of the top-500 high confident ``confusing'' samples actually suffer from noise, which again verifies the feasibility of our proposed noise model.
 
@@ -457,7 +495,7 @@ Next we explain the meaning of $p(\vec{z}|\vec{x})$ by taking a look at our mode
 
 \section{Conclusion} % (fold)
 \label{sec:conclusion}
-In this paper, we raised the problem of training a deep neural network with limited strongly labeled data and massive weakly labeled data. By investigating the source of weak labels, a novel probabilistic model is proposed to describe how a noisy label is generated. Two latent variables --- ground truth and noise type -- are introduced to bridge the semantic gap between the observed image and its corresponding weak label. We exploit EM algorithm to learn the parameters and integrate it into a deep learning framework. Experiments on a large-scale clothes dataset show that learning from massive weakly labeled data is significantly better than using merely the limited strongly supervised data. Utilizing our proposed label noise model can further improve the performance.
+In this paper, we raised the problem of training a deep neural network with limited clean annotations and massive noisy labeled data. A novel end-to-end deep learning framework is proposed to handle label noise in training data. We exploit a novel probabilistic model to describe how a noisy label is generated. Two latent variables --- ground truth and noise type -- are introduced to bridge the semantic gap between the observed image and its corresponding noisy label. We solve the problem by EM algorithm and integrate it into the deep learning framework. Experiments on a large-scale clothes dataset show that massive noisy label data could benefit the training of deep models, and utilizing our noise handling method can further improve the performance.
 % section conclusion (end)
 
 {\small
