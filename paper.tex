@@ -10,6 +10,7 @@
 \usepackage{amssymb}
 \usepackage{amsthm}
 \usepackage{algorithm2e}
+\usepackage{authblk}
 
 
 % Include other packages here, before hyperref.
@@ -21,7 +22,7 @@
 
 \usepackage{fontspec}
 
-% \cvprfinalcopy % *** Uncomment this line for the final submission
+\cvprfinalcopy % *** Uncomment this line for the final submission
 
 \def\cvprPaperID{407} % *** Enter the CVPR Paper ID here
 \def\httilde{\mbox{\tt\raisebox{-.5ex}{\symbol{126}}}}
@@ -40,23 +41,24 @@
 \RestyleAlgo{boxruled}
 
 %%%%%%%%% TITLE
-\title{Learning From Massive Noisy Labeled Data for Visual Classification}
+\title{Learning From Massive Noisy Labeled Data for Image Classification}
 
-\author{First Author\\
-Institution1\\
-Institution1 address\\
-{\tt\small firstauthor@i1.org}
+\author[1]{Tong Xiao}
+\author[2]{Tian Xia}
+\author[2]{Yi Yang}
+\author[2]{Chang Huang}
+\author[1]{Xiaogang Wang}
+
+\affil[1]{The Chinese University of Hong Kong}
+\affil[2]{Baidu Research}
+
+\renewcommand\Authands{ and }
+
 % For a paper whose authors are all at the same institution,
 % omit the following lines up until the closing ``}''.
 % Additional authors and addresses can be added with ``\and'',
 % just like the second author.
 % To save space, use either the email address or home page, not both
-\and
-Second Author\\
-Institution2\\
-First line of institution2 address\\
-{\tt\small secondauthor@i2.org}
-}
 
 \maketitle
 %\thispagestyle{empty}
@@ -189,7 +191,7 @@ Then the expected complete log-likelihood can be written as
       \sum_{\vec{z}} p(\vec{z} | \tilde{\vec{y}}, \vec{x}; \theta^{(t)}) \frac{\partial}{\partial \theta_2} \log p(\vec{z}|\vec{x};\theta_2)
 \end{multline}
 
-The semantic meaning of this optimization process is straight forward. We enumerate all the possible true labels, and weight each of them by their posterior probability based on our observation of the image and corresponding noisy label. Then we use these weighted labels to supervise the training of our deep neural networks.
+The M-Step above is equivalent to minimize the cross entropy between the estimated ground truth distribution and the prediction of the classifier.
 % subsection learning_the_parameters (end)
 
 \subsection{Estimating the Matrix $\mat{C}$} % (fold)
@@ -470,6 +472,11 @@ Next we explain the meaning of $p(\vec{z}|\vec{x})$ by taking a look at our mode
 \label{sec:conclusion}
 In this paper, we raised the problem of training a deep neural network with limited clean annotations and massive noisy labeled data. A novel end-to-end deep learning framework is proposed to handle label noise in training data. We exploit a novel probabilistic model to describe how a noisy label is generated. Two latent variables --- ground truth and noise type -- are introduced to bridge the semantic gap between the observed image and its corresponding noisy label. We solve the problem by EM algorithm and integrate it into the deep learning framework. Experiments on a large-scale clothes dataset show that massive noisy label data could benefit the training of deep models, and utilizing our noise handling method can further improve the performance.
 % section conclusion (end)
+
+\section*{Acknowledgements}
+\label{sec:acknowledgements}
+This work is supported by the National Basic Research Program of China (973 program No. 2014CB340505).
+
 
 {\small
 \bibliographystyle{ieee}
