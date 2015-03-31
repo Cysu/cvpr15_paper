@@ -80,23 +80,40 @@ One possible solution is to automatically collect large amount of annotations fr
 \begin{center}
 \includegraphics[width=0.9\linewidth]{figure/overview.pdf}
 \end{center}
-\caption{Overview of our method. Labels of web images often suffer from different types of noise. Our deep model infers true labels based on observed images and noisy labels. These true labels are then used to supervise the training of CNNs.}
+\caption{Overview of our approach. Labels of web images often suffer from different types of noise. A probabilistic model is proposed to detect and correct the wrong labels. The corrected labels are used to train underlying CNNs.}
 \label{fig:overview}
 \end{figure}
 
-Although annotating all the noisy data is costly, it is often easy to obtain a small amount of clean labels. Based on the observation of transferability of deep neural networks, people first initialize the parameters with a model pretrained on a larger yet related dataset~\cite{krizhevsky2012imagenet}, and then finetuning on the smaller dataset of specific task~\cite{oquab2013learning,azizpour2014generic}. Such methods may better avoid overfitting and utilize the relationships between the two datasets. However, we find that training a deep model directly with massive noisy data could achieve better performance than finetuning from a pretrained ImageNet model over a small subset, especially when the relations between the two datasets are weak. Other approaches address the classification problem as semi-supervised learning where noisy labels are discarded~\cite{zhu2002learning}. These algorithms usually suffer from model complexity thus cannot be applied on large-scale datasets. 
+Although annotating all the noisy data is costly, it is often easy to obtain a small amount of clean labels. Based on the observation of transferability of deep neural networks, people first initialize the parameters with a model pretrained on a larger yet related dataset~\cite{krizhevsky2012imagenet}, and then finetune on the smaller dataset of specific task~\cite{oquab2013learning,azizpour2014generic}. Such methods may better avoid overfitting and utilize the relationships between the two datasets. However, we find that training a Convolutional Neural Network (CNN) from scratch with limited clean labels and massive noisy labels is better than finetuning only on the clean labels. Other approaches address the problem as semi-supervised learning where noisy labels are discarded~\cite{zhu2002learning}. These algorithms usually suffer from model complexity thus cannot be applied on large-scale datasets. Therefore, it is inevitable to develop a better way of using huge amount of noisy labeled data.
 
-Our goal here is to build an end-to-end deep learning system that is capable of training with both limited clean labels and massive amount of noisy labels more effectively. Figure~\ref{fig:overview} shows the general framework of our system. The major challenge of using noisy labeled data is to identify bad samples and keep them from drifting the model training. Intuitively, we have two types of evidence to help make decisions. One comes from the ground truth labels of other similar images, and the other comes from how confusing the input image itself. In this paper, we model these two types of information as latent variables and use them to bridge the semantic gap between our observed image and weak label. Additionally, we introduce two types of label noise:
+Our goal is to build an end-to-end deep learning system that is capable of training with both limited clean labels and massive noisy labels more effectively. Figure~\ref{fig:overview} shows the framework of our approach. We collect a million clothes images from E-commerce websites. Each image is automatically assigned a noisy label according to the keywords in its surrounding text. After that, we manually refine 72,000 image labels, which constitute a clean sub-dataset. All the data are then used to train CNNs, while the major challenge is to identify and correct the wrong labels during the training process.
+
+To cope with this challenge, we extend CNNs with a novel probabilistic model, which infers the ground truths and uses them to supervise the training of the network. Our work is inspired by~\cite{sukhbaatar2014learning}, which modifies a CNN by inserting a linear layer on top of the softmax layer to map clean labels to noisy labels. However, they assume noisy labels are conditionally independent with input images given clean labels. By examining our collected dataset, we find that this assumption is too strong to fit the real-world data well. For example, in Figure~\ref{fig:noise_cluster}, all the images should belong to ``Hoodie''. The top five are correct while the bottom five are either mislabeled as ``Windbreaker'' or ``Jacket''. It shows that images tend to be mislabeled may share similar visual patterns. This is because different sellers have their own bias on different categories, thus they may provide wrong keywords for many similar clothes. Based on these observations, we introduce two types of label noise:
 \begin{itemize}
-   \item \textbf{Pure random noise} occurs when a noisy label has no semantic relationship with its image, for example, the samples with ``$\times$'' in Figure~\ref{fig:overview}. This kind of noise is often caused by either the mismatch between web image and surrounding texts, or false conversion from text to label. The noisy label in this case is not acceptable.
-   \item \textbf{Confusing noise} occurs when a noisy label is a reasonable object class for its image other than the ground truth one. This kind of noise happens regularly in some sort of images. For example, the samples with ``?'' in Figure~\ref{fig:overview}. However, in real applications, confusion among several related labels is generally acceptable to users.
+\item \textbf{Confusing noise} makes the noisy label reasonably wrong. It usually occurs when the image content is confusing (\eg, the samples with ``?'' in Figure~\ref{fig:overview}).
+\item \textbf{Pure random noise} makes the noisy label totally wrong. It is often caused by either the mismatch between an image and its surrounding text, or false conversion from the text to label (\eg, the samples with ``$\times$'' in Figure~\ref{fig:overview}).
 \end{itemize}
 
-We propose a novel probabilistic model to capture the relations among all these factors. We solve the problem by Expectation-Maximization (EM) algorithm and integrate it into a deep learning framework. To validate our approach, we collect a clothing classification dataset consisting of around $72,000$ clean labeled and one million noisy labeled data. Experiments on this dataset demonstrate that massive noisy labeled data could benefit the training of deep neural networks.
+The proposed probabilistic model will build the relations among the image, noisy label, ground truth label, and the noise type, where the latter two are treated as latent variables. We use the Expectation-Maximization (EM) algorithm to solve the problem and integrate it into the training process of CNNs. Experiments on the collected dataset show that our model can better detect and correct the wrong labels.
 
-Our work is inspired by~\cite{sukhbaatar2014learning}, which also modifies the deep neural networks to train effectively with noisy labeled data. However, their modification is simply implemented by adding a linear layer on top of the softmax layer, which builds on the assumption that label noise is independent with input images. We generalize~\cite{sukhbaatar2014learning} to a new deep learning framework by relating the noise to the input image. We find that by modeling the noise more appropriately, the deep models can benefit even more from noisy labels.
+Our contribution comes from three aspects. First, we study the causes of noisy labels in real-world data and describe all the variables with a novel probabilistic model. Second, we integrate the model into existing deep learning framework to help detect and correct wrong labels. Different training strategies are investigated to make the CNNs learn from better supervisions. Finally, a large-scale clothing dataset is collected with both noisy and clean labels, which will be released for academic use.
 
-Our contribution comes from three aspects. First, we model label noise generation with a graphical model and further integrate it into the deep learning framework. Second, we study different noise types and model their relations with the images by a deep neural network. Finally, we collect a large scale clothing classification dataset with both noisy labels and clean labels. 
+% TODO: combine these two figures
+\begin{figure}[t]
+\begin{center}
+\includegraphics[width=1.0\linewidth]{figure/noise_level.pdf}
+\end{center}
+\caption{The probability of an image suffering from different noise types depend on the image itself. Although all the images belong to class ``T-shirt'', the top two images can be easily recognized, while the bottom two tend to be confused with class ``Chiffon''.}
+\label{fig:compare_noise_level}
+\end{figure}
+
+\begin{figure}[t]
+\begin{center}
+\includegraphics[width=1.0\linewidth]{figure/noise_cluster.pdf}
+\end{center}
+\caption{Images tend to be mislabeled usually share similar visual patterns.}
+\label{fig:noise_cluster}
+\end{figure}
 
 % section related_work (end)
 
@@ -148,15 +165,7 @@ where $\mat{I}$ is the identity matrix, $\mat{U}$ is the unit matrix (all the el
   p(\tilde{\vec{y}}, \vec{y}, \vec{z} | \vec{x}) = p(\tilde{\vec{y}} | \vec{y}, \vec{z}) p(\vec{y} | \vec{x}) p(\vec{z} | \vec{x})
 \end{equation}
 
-While the object class probability distribution $p(\vec{y} | \vec{x})$ is comprehensible, the semantic meaning of $p(\vec{z} | \vec{x})$ needs extra clarification: it can be seen as a property of an image, which represents how confusing the image is. Specific to our clothes classification problem, $p(\vec{z} | \vec{x})$ can be affected by different factors, including background clutter, image resolution, the style and material of the clothes, \etc. See Figure~\ref{fig:compare_noise_level} for some examples.
-
-\begin{figure}[t]
-\begin{center}
-\includegraphics[width=1.0\linewidth]{figure/noise_level.pdf}
-\end{center}
-\caption{The probability of an image suffering from different noise types depend on the image itself. Although all the images belong to class ``T-shirt'', the top two images can be easily recognized, while the bottom two tend to be confused with class ``Chiffon''.}
-\label{fig:compare_noise_level}
-\end{figure}
+While the object class probability distribution $p(\vec{y} | \vec{x})$ is comprehensible, the semantic meaning of $p(\vec{z} | \vec{x})$ needs extra clarification: it can be seen as a property of an image, which represents how confusing the image is. Specific to our clothes classification problem, $p(\vec{z} | \vec{x})$ can be affected by different factors, including background clutter, image resolution, the style and material of the clothes, \etc.
 
 To illustrate the relations between noisy label and ground truth, we can derive their conditional probability from Eq~\ref{eq:joint_distribution} by
 \begin{equation}
@@ -449,14 +458,6 @@ Row 5 and 6 show the effect of handling label noise. While model \#5 is only $0.
 In order to understand the way our model handles noisy labels, we demonstrate several examples in Figure~\ref{fig:model_output}. We can see that given a noisy label, our model could exploit its current prediction to correct the noise by setting a large weight to the true label, and then use it as supervision instead of the noisy one. Another interesting observation is that if $p(\vec{y}|\vec{x})$ or $p(\vec{z}|\vec{x})$ goes wrong as shown in the top-right and bottom-left block respectively, our model can still figure out the correct label.
 
 Next we explain the meaning of $p(\vec{z}|\vec{x})$ by taking a look at our model's prediction on samples drawn from the clean label class ``Coat''. As shown in Figure~\ref{fig:noise_cluster}, the noisy label is not simply related to the ground truth. On the contrary, images that have high probability of confusing noise tend to share similar visual patterns. This observation indicates that $p(\vec{z}|\vec{x})$ is a property of an image itself representing how confusing the image is. Our model is trained to capture these information and exploit them to clarify the noisy labels. Figure~\ref{fig:noise_prediction_rp} further shows the rank-precision curve of our model's noise prediction. We can see that nearly $80\%$ of the top-500 high confident ``confusing'' samples actually suffer from noise, which again verifies the feasibility of our proposed noise model.
-
-\begin{figure}[t]
-\begin{center}
-\includegraphics[width=1.0\linewidth]{figure/noise_cluster.pdf}
-\end{center}
-\caption{Images tend to suffer from confusing noise usually share similar visual patterns. Our model predicts high probability of ``noise free'' for the five images on the top, while predicting high probability of ``confusing noise'' for the bottoms. While all the images share the same clean label ``Coat'', the first three images at the bottom row have noisy label ``Windbreaker'' and the latter two have noisy label ``Jacket''.}
-\label{fig:noise_cluster}
-\end{figure}
 
 \begin{figure}[t]
 \begin{center}
