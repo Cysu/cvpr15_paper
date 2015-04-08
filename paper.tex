@@ -384,65 +384,58 @@ The confusion matrix between clean and noisy labels is presented in Figure~\ref{
 \label{sub:evaluation}
 We validate our method through a series of experiments conducted on the collected dataset. Our implementation is based on Caffe~\cite{jia2014caffe}, and the \texttt{bvlc\_reference\_caffenet}\footnote{\url{http://caffe.berkeleyvision.org/model_zoo.html}} is chosen as the baseline model, which approximates AlexNet~\cite{krizhevsky2012imagenet}. Besides, we reimplement two other approaches. One is a semi-supervised learning method called Pseudo-Label~\cite{lee2013pseudo}, which exploits classifier's prediction as ground truth for unlabeled data. The other one is the Bottom-Up method introduced in~\cite{sukhbaatar2014learning}, where the relation between noisy labels and clean labels are built by a confusion matrix $Q$. In the experiments, we directly use the true $Q$ as shown in Figure~\ref{fig:cm_strong_weak} instead of estimating its values.
 
-We list all the experiment settings in Table~\ref{tab:models}. Different methods require different training data. We use only the clean data $\mathcal{D}_c$ to get the baselines under strong supervisions. On the other hand, when all the data are used, we upsample the clean data as discussed in Section~\ref{sec:deep_learning_from_noisy_labels}. Meanwhile, the noisy labels of $\mathcal{D}_n$ are treated as ground truths for AlexNet, and are discarded for Pseudo-Label.
+We list all the experiment settings in Table~\ref{tab:exp}. Different methods require different training data. We use only the clean data $\mathcal{D}_c$ to get the baselines under strong supervisions. On the other hand, when all the data are used, we upsample the clean data as discussed in Section~\ref{sec:deep_learning_from_noisy_labels}. Meanwhile, the noisy labels of $\mathcal{D}_n$ are treated as ground truths for AlexNet, and are discarded for Pseudo-Label.
 
-In general, we use a mini-batch size of $256$. The learning rate is initialized to be $0.001$ and is divided by $10$ after every $50,000$ iterations. We keep training each model until convergence. Classification accuracies on both the validation and test set are presented in Table~\ref{tab:accuracy}.
+In general, we use a mini-batch size of $256$. The learning rate is initialized to be $0.001$ and is divided by $10$ after every $50,000$ iterations. We keep training each model until convergence. Classification accuracies on the test set are presented in Table~\ref{tab:exp}.
 
-\begin{table}
+\begin{table*}[t]
 \begin{center}
-\begin{tabular}{c|p{3.5em}|p{9em}|p{5em}}
+\begin{tabular}{c|c|c|c|c}
 \hline
-\# & Method & Training Data & Initialization \\
+\# & Method & Training Data & Initialization & Test Accuracy\\
 \hline\hline
-1 & AlexNet & $\mathcal{D}_c$ & random \\
-\hline
-2 & AlexNet & $\mathcal{D}_c$ & ImageNet pretrained \\
-\hline
-3 & AlexNet & upsampled $\mathcal{D}_c$ and $\mathcal{D}_n$ as ground truths & random \\
-\hline
-4 & AlexNet & upsampled $\mathcal{D}_c$ and $\mathcal{D}_n$ as ground truths & ImaegNet pretrained \\
-\hline
-5 & AlexNet & upsampled $\mathcal{D}_c$ and $\mathcal{D}_n$ as ground truths & model \#2 \\
-\hline
-6 & Pseudo-Label\cite{lee2013pseudo} & upsampled $\mathcal{D}_c$ and $\mathcal{D}_n$ as unlabeled & model \#2 \\
-\hline
-7 & Bottom-Up~\cite{sukhbaatar2014learning} & $\mathcal{D}_c$ and $\mathcal{D}_n$ & model \#2 \\
-\hline
-8 & Ours & $\mathcal{D}_c$ and $\mathcal{D}_n$ & model \#2 \\
+1 & AlexNet & $\mathcal{D}_c$ & random & 64.54\% \\
+2 & AlexNet & $\mathcal{D}_c$ & ImageNet pretrained & 72.63\% \\
+3 & AlexNet & upsampled $\mathcal{D}_c$ and $\mathcal{D}_n$ as ground truths & random & 74.03\% \\
+4 & AlexNet & upsampled $\mathcal{D}_c$ and $\mathcal{D}_n$ as ground truths & ImaegNet pretrained & 75.13\% \\
+5 & AlexNet & upsampled $\mathcal{D}_c$ and $\mathcal{D}_n$ as ground truths & model \#2 & 75.30\% \\
+6 & Pseudo-Label\cite{lee2013pseudo} & upsampled $\mathcal{D}_c$ and $\mathcal{D}_n$ as unlabeled & model \#2 & 73.04\% \\
+7 & Bottom-Up~\cite{sukhbaatar2014learning} & $\mathcal{D}_c$ and $\mathcal{D}_n$ & model \#2 & 76.22\% \\
+8 & Ours & $\mathcal{D}_c$ and $\mathcal{D}_n$ & model \#2 & \textbf{78.24\%} \\
 \hline
 \end{tabular}
 \end{center}
-\caption{Experiment settings}
-\label{tab:models}
-\end{table}
+\caption{Experiment results on the collected dataset}
+\label{tab:exp}
+\end{table*}
 
-\begin{table}
-\begin{center}
-\begin{tabular}{c|c|c}
-\hline
-\# & Validation Accuracy & Test Accuracy \\
-\hline\hline
-1 & 64.28\% & 64.54\% \\
-\hline
-2 & 72.21\% & 72.63\% \\
-\hline
-3 & 73.76\% & 74.03\% \\
-\hline
-4 & 75.06\% & 75.13\% \\
-\hline
-5 & 75.57\% & 75.30\% \\
-\hline
-6 & 73.10\% & 73.04\% \\
-\hline
-7 & 75.97\% & 76.22\% \\
-\hline
-8 & \textbf{77.65\%} & \textbf{78.24\%} \\
-\hline
-\end{tabular}
-\end{center}
-\caption{Classification accuracies on validation and test set}
-\label{tab:accuracy}
-\end{table}
+% \begin{table}
+% \begin{center}
+% \begin{tabular}{c|c|c}
+% \hline
+% \# & Validation Accuracy & Test Accuracy \\
+% \hline\hline
+% 1 & 64.28\% & 64.54\% \\
+% \hline
+% 2 & 72.21\% & 72.63\% \\
+% \hline
+% 3 & 73.76\% & 74.03\% \\
+% \hline
+% 4 & 75.06\% & 75.13\% \\
+% \hline
+% 5 & 75.57\% & 75.30\% \\
+% \hline
+% 6 & 73.10\% & 73.04\% \\
+% \hline
+% 7 & 75.97\% & 76.22\% \\
+% \hline
+% 8 & \textbf{77.65\%} & \textbf{78.24\%} \\
+% \hline
+% \end{tabular}
+% \end{center}
+% \caption{Classification accuracies on validation and test set}
+% \label{tab:accuracy}
+% \end{table}
 
 \begin{figure*}
 \begin{center}
@@ -456,7 +449,7 @@ We first study the effect of transfer learning and massive noisy labeled data. F
 
 Next, from row \#6 we can see that semi-supervised learning methods may not be a good choice when massive noisy labeled data are available. Although model \#6 achieves marginally better result than its base model, it is significantly inferior to model \#5, which indicates that simply discarding all the noisy labels cannot make the full use of these information.
 
-Finally, row \#7 and \#8 show the effect of modeling the label noise. Model \#7 is only $0.4\% \sim 0.9\%$ better than the baseline model \#5, while our method gains improvement of $2.1\% \sim 2.9\%$. This result does credit to our image dependent label noise model, which fits better to the noisy labeled data crawled from the Internet.
+Finally, row \#7 and \#8 show the effect of modeling the label noise. Model \#7 is only $0.9\%$ better than the baseline model \#5, while our method gains improvement of $2.9\%$. This result does credit to our image dependent label noise model, which fits better to the noisy labeled data crawled from the Internet.
 
 \subsection{Evaluation on Synthetic Dataset} % (fold)
 \label{sub:evaluation_on_synthetic_dataset}
