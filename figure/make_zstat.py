@@ -15,11 +15,15 @@ def draw_zstat(file_path, output=None, topk=None):
     if topk is not None:
         rank_precision = rank_precision[0:topk]
 
-    plt.plot(rank_precision, linewidth=2.0, color='#111111')
-    plt.xlabel('Rank', fontsize=24)
-    plt.ylabel('Precision', fontsize=24)
+    plt.plot(rank_precision, linewidth=2.5, color='#111111')
+    plt.xlabel('Rank', fontsize=24, fontweight='bold')
+    plt.ylabel('Precision', fontsize=24, fontweight='bold')
     plt.ylim(0.0, 1.0)
     plt.tick_params(labelsize='large')
+
+    fig = plt.gcf()
+    fig.set_figheight(6)
+    fig.set_figwidth(12)
 
     if output is not None:
         plt.savefig(output)

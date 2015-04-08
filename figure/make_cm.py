@@ -5,7 +5,7 @@ import cPickle
 from argparse import ArgumentParser
 
 _label_names = [
-    'T-Shirt', 'Shirt', 'Knitwear', 'Chiffon', 'Sweater', 'Coat', 'Windbreaker',
+    'T-Shirt', 'Shirt', 'Knitwear', 'Chiffon', 'Sweater', 'Hoodie', 'Windbreaker',
     'Jacket', 'Down Coat', 'Suit', 'Shawl', 'Dress', 'Vest', 'Underwear']
 
 def _unpickle(file_path):
@@ -37,19 +37,22 @@ def draw_cm(file_path, output=None):
                           va='center', ha='center', color='#111111')
 
     # plt.title('Average Accuracy {:.2%}'.format(acc))
-    plt.xlabel('True Label', fontsize=8)
-    plt.ylabel('Weak Label', fontsize=8)
+    plt.xlabel('True Label', fontsize=12, fontweight='bold')
+    plt.ylabel('Noisy Label', fontsize=12, fontweight='bold')
     axes.set_xticks([i for i in xrange(n)])
     axes.set_yticks([i for i in xrange(n)])
     axes.set_yticklabels(_label_names, fontsize=7)
 
     x_tl = []
     for i, (name, freq) in enumerate(zip(_label_names, freq)):
-        if i % 2 == 0:
-            x_tl.append('{}\n\n{:.1%}'.format(name, freq))
+        if i % 3 == 0:
+            x_tl.append('{}\n\n\n{:.1%}'.format(name, freq))
+        elif i % 3 == 1:
+            x_tl.append('\n{}\n\n{:.1%}'.format(name, freq))
         else:
-            x_tl.append('\n{}\n{:.1%}'.format(name, freq))
-    axes.set_xticklabels(x_tl, fontsize=7)
+            x_tl.append('\n\n{}\n{:.1%}'.format(name, freq))
+    axes.set_xticklabels(x_tl, fontsize=8)
+    axes.tick_params(width=0)
 
     if output is not None:
         plt.savefig(output)
