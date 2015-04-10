@@ -72,13 +72,13 @@ Large-scale supervised datasets are crucial to train convolutional neural networ
 \section{Introduction} % (fold)
 \label{sec:introduction}
 
-Deep learning with a massive amount of supervised training data has recently shown very impressive improvement on multiple image recognition challenges including image classification~\cite{krizhevsky2012imagenet}, attribute learning~\cite{zhang2014panda}, and scene classification~\cite{farabet2013learning}. While state-of-the-art results have been continuously reported~\cite{zeiler2013visualizing,simonyan2014very,szegedy2014going}, all these methods require reliable annotations from millions of images~\cite{deng2009imagenet} which are often expensive and time-consuming to obtain~\cite{deng2009imagenet}, preventing deep models from being quickly trained on new image recognition problems. Thus it is necessary to develop new efficient labeling and training frameworks for deep learning.
+Deep learning with a massive amount of supervised training data has recently shown very impressive improvement on multiple image recognition challenges including image classification~\cite{krizhevsky2012imagenet}, attribute learning~\cite{zhang2014panda}, and scene classification~\cite{farabet2013learning}. While state-of-the-art results have been continuously reported~\cite{zeiler2013visualizing,simonyan2014very,szegedy2014going}, all these methods require reliable annotations from millions of images~\cite{deng2009imagenet} which are often expensive and time-consuming to obtain, preventing deep models from being quickly trained on new image recognition problems. Thus it is necessary to develop new efficient labeling and training frameworks for deep learning.
 
-One possible solution is to automatically collect large amount of annotations from the Internet web images~\cite{gong2014multiview} (i.e. extracting tags from the surrounding texts or keywords from search engines) and directly use them as ground truth to train deep models. Unfortunately, these labels are extremely unreliable due to various types of noise (i.e. labeling mistakes from annotators or computing errors from extraction algorithms). Many works have shown that these noisy labels could adversely impact the classification accuracy of the induced classifiers~\cite{zhu2004class,nettleton2010study,pechenizkiy2006class}. Various label noise-robust algorithms are developed but experiments show that performances of classifiers inferred by robust algorithms are still affected by label noise~\cite{bartlett2006convexity,teng2001comparison}. Other data cleansing algorithms are proposed~\cite{barandela2000decontamination,brodley2011identifying,miranda2009use}, but these approaches are difficult in distinguishing informative hard examples from harmful mislabeled ones.
+One possible solution is to automatically collect large amount of annotations from the Internet web images~\cite{gong2014multiview} (\ie extracting tags from the surrounding texts or keywords from search engines) and directly use them as ground truth to train deep models. Unfortunately, these labels are extremely unreliable due to various types of noise (\eg labeling mistakes from annotators or computing errors from extraction algorithms). Many works have shown that these noisy labels could adversely impact the classification accuracy of the induced classifiers~\cite{zhu2004class,nettleton2010study,pechenizkiy2006class}. Various label noise-robust algorithms are developed but experiments show that performances of classifiers inferred by robust algorithms are still affected by label noise~\cite{bartlett2006convexity,teng2001comparison}. Other data cleansing algorithms are proposed~\cite{barandela2000decontamination,brodley2011identifying,miranda2009use}, but these approaches are difficult in distinguishing informative hard examples from harmful mislabeled ones.
 
 \begin{figure}[t]
 \begin{center}
-\includegraphics[width=0.95\linewidth]{figure/overview.pdf}
+\includegraphics[width=0.85\linewidth]{figure/overview.pdf}
 \end{center}
 \caption{Overview of our approach. Labels of web images often suffer from different types of noise. A label noise model is proposed to detect and correct the wrong labels. The corrected labels are used to train underlying CNNs.}
 \label{fig:overview}
@@ -88,10 +88,10 @@ Although annotating all the data is costly, it is often easy to obtain a small a
 
 Our goal is to build an end-to-end deep learning system that is capable of training with both limited clean labels and massive noisy labels more effectively. Figure~\ref{fig:overview} shows the framework of our approach. We collect $1,000,000$ clothing images from online shopping websites. Each image is automatically assigned with a noisy label according to the keywords in its surrounding text. We manually refine $72,409$ image labels, which constitute a clean sub-dataset. All the data are then used to train CNNs, while the major challenge is to identify and correct wrong labels during the training process.
 
-To cope with this challenge, we extend CNNs with a novel probabilistic model, which infers the true labels and uses them to supervise the training of the network. Our work is inspired by~\cite{sukhbaatar2014learning}, which modified a CNN by inserting a linear layer on top of the softmax layer to map clean labels to noisy labels. However,~\cite{sukhbaatar2014learning} assumed noisy labels were conditionally independent with input images given clean labels. By examining our collected dataset, we find that this assumption is too strong to fit real-world data well. For example, in Figure~\ref{fig:noise_cluster}, all the images should belong to ``Hoodie''. The top five are correct while the bottom five are either mislabeled as ``Windbreaker'' or ``Jacket''. This is because different sellers have their own bias on different categories, thus they may provide wrong keywords for similar clothes. We can capture these visual patterns to estimate how likely an image is mislabeled. Based on these observations, we further introduce two types of label noise:
+To cope with this challenge, we extend CNNs with a novel probabilistic model, which infers the true labels and uses them to supervise the training of the network. Our work is inspired by~\cite{sukhbaatar2014learning}, which modified a CNN by inserting a linear layer on top of the softmax layer to map clean labels to noisy labels. However,~\cite{sukhbaatar2014learning} assumed noisy labels are conditionally independent with input images given clean labels. By examining our collected dataset, we find that this assumption is too strong to fit real-world data well. For example, in Figure~\ref{fig:noise_cluster}, all the images should belong to ``Hoodie''. The top five are correct while the bottom five are either mislabeled as ``Windbreaker'' or ``Jacket''. Since different sellers have their own bias on different categories, they may provide wrong keywords for similar clothes. We can capture these visual patterns to estimate how likely an image is mislabeled. Based on these observations, we further introduce two types of label noise:
 \begin{itemize}
 \item \textbf{Confusing noise} makes the noisy label reasonably wrong. It usually occurs when the image content is confusing (\eg, the samples with ``?'' in Figure~\ref{fig:overview}).
-\item \textbf{Pure random noise} makes the noisy label totally wrong. It is often caused by either the mismatch between an image and its surrounding text, or false conversion from the text to label (\eg, the samples with ``$\times$'' in Figure~\ref{fig:overview}).
+\item \textbf{Pure random noise} makes the noisy label totally wrong. It is often caused by either the mismatch between an image and its surrounding text, or the false conversion from the text to label (\eg, the samples with ``$\times$'' in Figure~\ref{fig:overview}).
 \end{itemize}
 
 The proposed probabilistic model builds the relations among images, noisy labels, ground truth labels, and noise types, where the latter two are treated as latent variables. We use the Expectation-Maximization (EM) algorithm to solve the problem and integrate it into the training process of CNNs. Experiments on the collected dataset show that our model can better detect and correct the wrong labels.
@@ -100,7 +100,7 @@ Our contribution comes from three aspects. First, we study the cause of noisy la
 
 \begin{figure}[t]
 \begin{center}
-\includegraphics[width=1.0\linewidth]{figure/noise_cluster.pdf}
+\includegraphics[width=0.9\linewidth]{figure/noise_cluster.pdf}
 \end{center}
 \caption{Mislabeled images often share similar visual patterns.}
 \label{fig:noise_cluster}
@@ -285,7 +285,7 @@ The above analysis leads to a simple algorithm. We enumerate $k^*$ from 1 to $L$
 \begin{center}
 \includegraphics[width=0.9\linewidth]{figure/diagram.pdf}
 \end{center}
-\caption{System diagram of our method. Two CNNs are used to predict the class label $p(\vec{y}|\vec{x})$ and the noise type $p(\vec{z}|\vec{x})$, respectively. The label noise model layer infers the true label according to the predictions and the noisy label, which is then used to supervise the training of CNNs. Data with clean labels are also mixed in to prevent the models from drifting away.}
+\caption{System diagram of our method. Two CNNs are used to predict the class label $p(\vec{y}|\vec{x})$ and the noise type $p(\vec{z}|\vec{x})$, respectively. The label noise model layer uses both these predictions and the given noisy label to estimate a posterior distribution of the true label, which is then used to supervise the training of CNNs. Data with clean labels are also mixed in to prevent the models from drifting away.}
 \label{fig:framework}
 \end{figure*}
 
@@ -436,10 +436,10 @@ In general, we use a mini-batch size of $256$. The learning rate is initialized 
 
 \begin{figure*}
 \begin{center}
-\end{center}
 \includegraphics[width=1.0\linewidth]{figure/model_output.pdf}
 \caption{Examples of handling noisy labels. The information layout in each block is illustrated in the top-left one.}
 \label{fig:model_output}
+\end{center}
 \end{figure*}
 
 We first study the effect of transfer learning and massive noisy labeled data. From row \#1 we can see that training a CNN from scratch with only small amount of clean data can result in bad performance. To deal with this problem, finetuning from an ImageNet pretrained model can significantly improve the accuracy, as shown in row \#2. However, by comparing row \#2 and \#3, we find that training with random initialization on additional massive noisy labeled data is better than finetuning only on the clean data, which demonstrates the power of using large-scale yet easily obtained noisy labeled data. The accuracy can be further improved if we finetune the model either from an ImageNet pretrained one or model \#2. The latter one has slightly better performance thus is used to initialize the remaining methods.
