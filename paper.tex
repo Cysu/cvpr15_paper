@@ -9,7 +9,6 @@
 \usepackage{amsmath}
 \usepackage{amssymb}
 \usepackage{amsthm}
-\usepackage{algorithm2e}
 \usepackage{authblk}
 
 
@@ -19,8 +18,6 @@
 % egpaper.aux before re-running latex.  (Or just hit 'q' on the first latex
 % run, let it finish, and you should be clear).
 \usepackage[pagebackref=true,breaklinks=true,letterpaper=true,colorlinks,bookmarks=false]{hyperref}
-
-\usepackage{fontspec}
 
 \cvprfinalcopy % *** Uncomment this line for the final submission
 
@@ -38,20 +35,16 @@
 \ifcvprfinal\pagestyle{empty}\fi
 \begin{document}
 
-\RestyleAlgo{boxruled}
 
 %%%%%%%%% TITLE
 \title{Learning From Massive Noisy Labeled Data for Image Classification}
-
 \author[1]{Tong Xiao}
 \author[2]{Tian Xia}
 \author[2]{Yi Yang}
 \author[2]{Chang Huang}
 \author[1]{Xiaogang Wang}
-
 \affil[1]{The Chinese University of Hong Kong}
 \affil[2]{Baidu Research}
-
 \renewcommand\Authands{, and }
 
 % For a paper whose authors are all at the same institution,
@@ -61,7 +54,7 @@
 % To save space, use either the email address or home page, not both
 
 \maketitle
-%\thispagestyle{empty}
+\thispagestyle{empty}
 
 %%%%%%%%% ABSTRACT
 \begin{abstract}
@@ -78,7 +71,7 @@ One possible solution is to automatically collect large amount of annotations fr
 
 \begin{figure}[t]
 \begin{center}
-\includegraphics[width=0.85\linewidth]{figure/overview.pdf}
+\includegraphics[width=1.0\linewidth]{figure/overview.pdf}
 \end{center}
 \caption{Overview of our approach. Labels of web images often suffer from different types of noise. A label noise model is proposed to detect and correct the wrong labels. The corrected labels are used to train underlying CNNs.}
 \label{fig:overview}
@@ -100,7 +93,7 @@ Our contribution comes from three aspects. First, we study the cause of noisy la
 
 \begin{figure}[t]
 \begin{center}
-\includegraphics[width=0.9\linewidth]{figure/noise_cluster.pdf}
+\includegraphics[width=1.0\linewidth]{figure/noise_cluster.pdf}
 \end{center}
 \caption{Mislabeled images often share similar visual patterns.}
 \label{fig:noise_cluster}
@@ -126,7 +119,7 @@ We target on learning a classifier from a set of images with noisy labels. To be
 
 \begin{figure}[h!]
 \begin{center}
-\includegraphics[width=0.5\linewidth]{figure/pgm.pdf}
+\includegraphics[width=0.6\linewidth]{figure/pgm.pdf}
 \end{center}
 \caption{Probabilistic graphical model of label noise}
 \label{fig:noise_pgm}
@@ -283,72 +276,13 @@ The above analysis leads to a simple algorithm. We enumerate $k^*$ from 1 to $L$
 
 \begin{figure*}
 \begin{center}
-\includegraphics[width=0.9\linewidth]{figure/diagram.pdf}
+\includegraphics[width=1.0\linewidth]{figure/diagram.pdf}
 \end{center}
 \caption{System diagram of our method. Two CNNs are used to predict the class label $p(\vec{y}|\vec{x})$ and the noise type $p(\vec{z}|\vec{x})$, respectively. The label noise model layer uses both these predictions and the given noisy label to estimate a posterior distribution of the true label, which is then used to supervise the training of CNNs. Data with clean labels are also mixed in to prevent the models from drifting away.}
 \label{fig:framework}
 \end{figure*}
 
 We integrate the proposed label noise model into a deep learning framework. As demonstrated in Figure~\ref{fig:framework}, we predict the probability $p(\vec{y}|\vec{x})$ and $p(\vec{z}|\vec{x})$ by using two independent CNNs. Moreover, we append a label noise model layer at the end, which takes as input the CNNs' prediction scores and the observed noisy label. Stochastic Gradient Ascent with backpropagation technique is used to approximately optimize the whole network. In each forward pass, the label noise model layer computes the posterior of latent variables according to Eq~\eqref{eq:posterior}. While in the backward pass, it computes the gradients according to Eq~\eqref{eq:gradient}.
-
-% The forward procedure is summarized in Algorithm~\ref{alg:forward}, and the backward pass for computing gradient with respect to $p(\vec{y}|\vec{x})$ is illustrated in Algorithm~\ref{alg:backward}.
-
-% \begin{algorithm}
-%     \SetKwData{Sum}{sum}
-%     \SetKwFunction{Softmax}{Softmax}\SetKwFunction{Q}{Q}
-%     \SetKwInOut{Input}{input}\SetKwInOut{Output}{output}
-
-%     \Input{Observed weak label vector $\tilde{\vec{y}}$ of size $N$}
-%     \Input{Object class scores matrix $Y$ of size $N \times L$}
-%     \Input{Noise type scores matrix $Z$ of size $N \times 3$}
-%     \Output{Posterior probability matrix $P$ of size $L \times 3$}
-%     \BlankLine
-
-%     $P_y \leftarrow$ \Softmax{$Y$}\;
-%     $P_z \leftarrow$ \Softmax{$Z$}\;
-%     \BlankLine
-
-%     \emph{\Q is the function that implements Eq~\eqref{eq:likelihood}}\;
-%     \BlankLine
-
-%     \For {$i \leftarrow 1$ \KwTo $N$} {
-%         \Sum $\leftarrow 0$\;
-%         \For {$j \leftarrow 1$ \KwTo $L$} {
-%             \For {$k \leftarrow 1$ \KwTo $3$} {
-%                 $P[i,j,k] \leftarrow P_y[i,j] \times P_z[i,k] \times$ \Q{$\tilde{\vec{y}}$,j,k}\;
-%                 \Sum $\leftarrow$ \Sum$+ P[i,j,k]$\;
-%             }
-%         }
-%         $P[i,:,:] \leftarrow P[i,:,:] /$ \Sum\;
-%     }
-
-%     \caption{Forward pass}
-%     \label{alg:forward}
-% \end{algorithm}
-% \begin{algorithm}
-%     \SetKwData{Sum}{sum}
-%     \SetKwInOut{Input}{input}\SetKwInOut{Output}{output}
-
-%     \Input{Object class scores matrix $Y$ of size $N \times L$}
-%     \Input{Posterior probability matrix $P$ of size $L \times 3$}
-%     \Output{Gradient matrix $\Delta_Y$ of size $N \times L$}
-%     \BlankLine
-
-%     \For {$i \leftarrow 1$ \KwTo $N$} {
-%         \For {$j \leftarrow 1$ \KwTo $L$} {
-%             \Sum $\leftarrow 0$\;
-%             \For {$k \leftarrow 1$ \KwTo $3$} {
-%                 \Sum $\leftarrow$ \Sum$+ P[i,j,k]$\;
-%             }
-%             $\Delta_Y[i,:] \leftarrow \Delta_Y[i,:] + $ \Sum $\times Y[i,:]$\;
-%             $\Delta_Y[i,j] \leftarrow \Delta_Y[i,j] - $ \Sum\;
-%         }
-%     }
-
-
-%     \caption{Backward pass for computing gradient w.r.t. object class scores}
-%     \label{alg:backward}
-% \end{algorithm}
 
 Directly training the whole network with random initialization is impractical, because the posterior computation could be totally wrong. Therefore, we need to pretrain each CNN component with strongly supervised data. Images and their ground truth labels in the dataset $\mathcal{D}_c$ are used to train the CNN that predicts $p(\vec{y}|\vec{x})$. On the other hand, the optimal solutions of $\vec{z}^{(1)},\cdots,\vec{z}^{(N)}$ in Eq~\eqref{eq:opt_all} are used to train the CNN that predicts $p(\vec{z}|\vec{x})$.
 
@@ -406,37 +340,9 @@ In general, we use a mini-batch size of $256$. The learning rate is initialized 
 \label{tab:exp}
 \end{table*}
 
-% \begin{table}
-% \begin{center}
-% \begin{tabular}{c|c|c}
-% \hline
-% \# & Validation Accuracy & Test Accuracy \\
-% \hline\hline
-% 1 & 64.28\% & 64.54\% \\
-% \hline
-% 2 & 72.21\% & 72.63\% \\
-% \hline
-% 3 & 73.76\% & 74.03\% \\
-% \hline
-% 4 & 75.06\% & 75.13\% \\
-% \hline
-% 5 & 75.57\% & 75.30\% \\
-% \hline
-% 6 & 73.10\% & 73.04\% \\
-% \hline
-% 7 & 75.97\% & 76.22\% \\
-% \hline
-% 8 & \textbf{77.65\%} & \textbf{78.24\%} \\
-% \hline
-% \end{tabular}
-% \end{center}
-% \caption{Classification accuracies on validation and test set}
-% \label{tab:accuracy}
-% \end{table}
-
 \begin{figure*}
 \begin{center}
-\includegraphics[width=0.9\linewidth]{figure/model_output.pdf}
+\includegraphics[width=1.0\linewidth]{figure/model_output.pdf}
 \caption{Examples of handling noisy labels. The information layout in each block is illustrated in the top-left one.}
 \label{fig:model_output}
 \end{center}
@@ -448,9 +354,9 @@ Next, from row \#6 we can see that semi-supervised learning methods may not be a
 
 Finally, row \#7 and \#8 show the effect of modeling the label noise. Model \#7 is only $0.9\%$ better than the baseline model \#5, while our method gains improvement of $2.9\%$. This result does credit to our image dependent label noise model, which fits better to the noisy labeled data crawled from the Internet.
 
-\subsection{Evaluation on Synthetic Dataset} % (fold)
+\subsection{Evaluation on CIFAR-10 with Synthetic Noises} % (fold)
 \label{sub:evaluation_on_synthetic_dataset}
-We also conduct synthetic experiments on CIFAR-10 following the settings of~\cite{sukhbaatar2014learning}. We first randomly generate a confusion matrix $Q$ between clean labels and noisy labels, and then corrupt the training labels according to it. Based on Caffe's CIFAR10-quick model, we compare~\cite{sukhbaatar2014learning} (Bottom Up with true $Q$) with our model under different noise levels. The test accuracies are reported in Table~\ref{tab:accuracy_synthetic}.
+We also conduct synthetic experiments on CIFAR-10 following the settings of~\cite{sukhbaatar2014learning}. We first randomly generate a confusion matrix $Q$ between clean labels and noisy labels, and then corrupt the training labels according to it. Based on Caffe's CIFAR10-quick model, we compare the~\cite{sukhbaatar2014learning} (Bottom Up with true $Q$) with our model under different noise levels. The test accuracies are reported in Table~\ref{tab:accuracy_synthetic}.
 
 \begin{table}
 \begin{center}
@@ -470,15 +376,15 @@ Noise Level & Base Model & \cite{sukhbaatar2014learning} & Ours \\
 \label{tab:accuracy_synthetic}
 \end{table}
 
-It should be noticed that~\cite{sukhbaatar2014learning} assumed the distribution of noisy labels only depends on classes, while we assume it also depends on image content. This kind of synthetic label noise exactly matches their assumption but is unfavored to our model. Thus the noise type predictions in our model could be less informative. Nevertheless, our model achieves comparable results with~\cite{sukhbaatar2014learning}.
+It should be noticed that~\cite{sukhbaatar2014learning} assumed the distribution of noisy labels only depends on classes, while we assume it also depends on image content. Label noises generated in the synthetic experiments exactly match their assumption but are unfavored to our model. Thus the noise type predictions in our model could be less informative. Nevertheless, our model achieves comparable performances with~\cite{sukhbaatar2014learning}.
 % subsection evaluation_on_synthetic_dataset (end)
 
 
 \subsection{Effect of Noise Estimation} % (fold)
 \label{sub:effect_of_noise_estimation}
-In order to understand how does our model handle noisy labels, we first show several examples in Figure~\ref{fig:model_output}. We can see that given a noisy label, our model exploits its current knowledge to estimate the probability distribution of the true label, and then use it as supervision instead of the noisy one. Another interesting observation is that if $p(\vec{y}|\vec{x})$ or $p(\vec{z}|\vec{x})$ goes wrong, our model can still figure out the correct label.
+In order to understand how our model handles noisy labels, we first show several examples in Figure~\ref{fig:model_output}. We find that given a noisy label, our model exploits its current knowledge to estimate the probability distribution of the true label and then replaces the noisy one with it as supervision. Another interesting observation is that our model can still figure out the correct label if the prediction of the class label $p(\vec{y}|\vec{x})$ or the noise type $p(\vec{z}|\vec{x})$ goes wrong. These two latent variables compensate with each other to help the system distinguish between hard samples and noisy labeled ones.
 
-Next we demonstrate the effect of learning to predict the label noise type. We first estimate $p(\vec{z}_2=1|\vec{x})+p(\vec{z}_3=1|\vec{x})$ on the validation set and sort the images accordingly in descending order. Then for each image, we check whether its noisy label mismatches its clean label. The rank-precision curve is plotted in Figure~\ref{fig:noise_prediction_rp}. It shows that the intuitive observation --- mislabeled images often share similar patterns --- is reasonable, and our model is trained to recognize such patterns to help handle noisy labels.
+Next we demonstrate the effectiveness of learning to predict the label noise type. Notice that if an image has low probability of ``noise free'' (\ie, $p(\vec{z}_1=1|\vec{x})$ is small), then our model will believe it is likely to be mislabeled. In order to check the reliability of these predictions, we first estimate $p(\vec{z}_1=1|\vec{x})$ on the validation set and sort the images accordingly in ascending order. Then for each image, we check whether its noisy label mismatches its clean label. The rank-precision curve is plotted in Figure~\ref{fig:noise_prediction_rp}. It shows that the intuitive observation --- mislabeled images often share similar patterns --- is reasonable, and our model is trained to recognize such patterns to identify potentially mislabeled images.
 
 \begin{figure}[t]
 \begin{center}
@@ -492,7 +398,7 @@ Next we demonstrate the effect of learning to predict the label noise type. We f
 
 \section{Conclusion} % (fold)
 \label{sec:conclusion}
-In this paper, we raised the problem of training a classifier with limited clean annotations and massive noisy labeled data. We proposed a novel probabilistic model to describe how a noisy label is generated. Two latent variables --- true label and noise type --- were introduced to bridge the semantic gap between an observed image and its noisy label. We solved the problem by the EM algorithm and integrated it into a deep learning framework. Experiments on a collected large-scale clothing dataset showed that massive noisy label data could benefit the training of deep models, and utilizing our method could further improve the performance.
+In this paper, we address the problem of training a deep learning classifier with massive amount of noisy labeled training data and a small amount of clean annotations which are generally easy to collect. To utilize both limited clean labels and massive noisy labels, we propose a novel probabilistic framework to describe how noisy labels are produced. We introduce two latent variables, the true label and the noise type, to bridge the gap between an input image and its noisy label. We observe that the label noises not only depend on the ambiguity between classes, but could follow similar visual patterns as well. We build the dependency of the noise type \wrt Images, and infer the ground truth label with EM algorithm. We integrate the probabilistic model into a deep learning framework and demonstrate the effectiveness of our method on a large-scale real-world clothing classification dataset.
 % section conclusion (end)
 
 \section*{Acknowledgements}
