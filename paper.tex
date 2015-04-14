@@ -120,7 +120,7 @@ We target on learning a classifier from a set of images with noisy labels. To be
 
 \begin{figure}[h!]
 \begin{center}
-\includegraphics[width=0.6\linewidth]{figure/pgm.pdf}
+\includegraphics[width=0.5\linewidth]{figure/pgm.pdf}
 \end{center}
 \caption{Probabilistic graphical model of label noise}
 \label{fig:noise_pgm}
@@ -128,7 +128,7 @@ We target on learning a classifier from a set of images with noisy labels. To be
 
 Despite the observed image $\vec{x}$ and the noisy label $\tilde{\vec{y}}$, we exploit two discrete latent variables --- $\vec{y}$ and $\vec{z}$ --- to represent the true label and the label noise type, respectively. Both $\tilde{\vec{y}}$ and $\vec{y}$ are $L$-dimensional binary random variables in 1-of-$L$ fashion, \ie, only one element is equal to 1 while others are all 0.
 
-The label noise type $\vec{z}$ is an 1-of-3 binary random variable. It is associated with three different semantic meanings:
+The label noise type $\vec{z}$ is an 1-of-3 binary random variable. It is associated with three semantic meanings:
 \begin{enumerate}
     \item The label is noise free, \ie, $\tilde{\vec{y}}$ should be equal to $\vec{y}$.
     \item The label suffers from a pure random noise, \ie, $\tilde{\vec{y}}$ can take any possible value other than $\vec{y}$.
@@ -277,7 +277,7 @@ The above analysis leads to a simple algorithm. We enumerate $k^*$ from 1 to $L$
 
 \begin{figure*}
 \begin{center}
-\includegraphics[width=1.0\linewidth]{figure/diagram.pdf}
+\includegraphics[width=0.85\linewidth]{figure/diagram.pdf}
 \end{center}
 \caption{System diagram of our method. Two CNNs are used to predict the class label $p(\vec{y}|\vec{x})$ and the noise type $p(\vec{z}|\vec{x})$, respectively. The label noise model layer uses both these predictions and the given noisy label to estimate a posterior distribution of the true label, which is then used to supervise the training of CNNs. Data with clean labels are also mixed in to prevent the models from drifting away.}
 \label{fig:framework}
@@ -305,7 +305,7 @@ The confusion matrix between clean and noisy labels is presented in Figure~\ref{
 
 \begin{figure}[t]
 \begin{center}
-\includegraphics[width=1.0\linewidth]{figure/cm_strong_weak_labels.pdf}
+\includegraphics[width=0.9\linewidth]{figure/cm_strong_weak_labels.pdf}
 \end{center}
 \caption{Confusion matrix between clean and noisy labels. We hide extremely small grid numbers for better demonstration. Frequency of each true label is listed at the top of each column. The overall accuracy is $61.54\%$, which indicates that the noisy labels are not reliable.}
 \label{fig:cm_strong_weak}
@@ -337,14 +337,14 @@ In general, we use a mini-batch size of $256$. The learning rate is initialized 
 \hline
 \end{tabular}
 \end{center}
-\caption{Experiment results on the collected dataset}
+\caption{Experimental results on the clothing classification dataset. $\mathcal{D}_c$ contains $47,570$ clean labels while $\mathcal{D}_{\eta}$ contains $10^6$ noisy labels.}
 \label{tab:exp}
 \end{table*}
 
 \begin{figure*}
 \begin{center}
-\includegraphics[width=1.0\linewidth]{figure/model_output.pdf}
-\caption{Examples of handling noisy labels. The information layout in each block is illustrated in the top-left one.}
+\includegraphics[width=0.95\linewidth]{figure/model_output.pdf}
+\caption{Examples of handling noisy labels. The information layout for each block is illustrated on the top-left. $p(\vec{y}|\vec{x})$ and $p(\vec{z}|\vec{x})$ are predictions of the true label and noise type based on image content. After observing the noisy label, our model infers the posterior distributions $p(\vec{y}|\vec{\tilde{y}},\vec{x})$ and $p(\vec{z}|\vec{\tilde{y}},\vec{x})$, then replaces the $\vec{y}$ and $\vec{z}$ with them as supervisions to the CNNs.}
 \label{fig:model_output}
 \end{center}
 \end{figure*}
@@ -363,7 +363,7 @@ We also conduct synthetic experiments on CIFAR-10 following the settings of~\cit
 \begin{center}
 \begin{tabular}{c|c|c|c}
 \hline
-Noise Level & Base Model & \cite{sukhbaatar2014learning} & Ours \\
+Noise Level & CIFAR10-quick & \cite{sukhbaatar2014learning} & Ours \\
 \hline\hline
 30\% & 65.57\% & 69.73\% & 69.81\% \\
 \hline
@@ -373,7 +373,7 @@ Noise Level & Base Model & \cite{sukhbaatar2014learning} & Ours \\
 \hline
 \end{tabular}
 \end{center}
-\caption{Accuracies on CIFAR-10 with synthetic label noise}
+\caption{Accuracies on CIFAR-10 with synthetic label noises. The label noises generated here only depend on the true labels but not the image content, which exactly match the assumption of~\cite{sukhbaatar2014learning} but are unfavored to our model.}
 \label{tab:accuracy_synthetic}
 \end{table}
 
@@ -385,13 +385,13 @@ It should be noticed that~\cite{sukhbaatar2014learning} assumed the distribution
 \label{sub:effect_of_noise_estimation}
 In order to understand how our model handles noisy labels, we first show several examples in Figure~\ref{fig:model_output}. We find that given a noisy label, our model exploits its current knowledge to estimate the probability distribution of the true label and then replaces the noisy one with it as supervision. Another interesting observation is that our model can still figure out the correct label if the prediction of the class label $p(\vec{y}|\vec{x})$ or the noise type $p(\vec{z}|\vec{x})$ goes wrong. These two latent variables compensate with each other to help the system distinguish between hard samples and noisy labeled ones.
 
-Next we demonstrate the effectiveness of learning to predict the label noise type. Notice that if an image has low probability of ``noise free'' (\ie, $p(\vec{z}_1=1|\vec{x})$ is small), then our model will believe it is likely to be mislabeled. In order to check the reliability of these predictions, we first estimate $p(\vec{z}_1=1|\vec{x})$ on the validation set and sort the images accordingly in ascending order. Then for each image, we check whether its noisy label mismatches its clean label. The rank-precision curve is plotted in Figure~\ref{fig:noise_prediction_rp}. It shows that our model can identify mislabeled samples quite well based on their image content, which verifies the observation that mislabeled images often share similar visual patterns.
+Next we demonstrate the effectiveness of learning to predict the label noise type. Notice that if an image has low probability of ``noise free'' (\ie, $p(\vec{z}_1=1|\vec{x})$ is small), then our model will believe it is likely to be mislabeled. In order to check the reliability of these predictions, we estimate $p(\vec{z}_1=1|\vec{x})$ on the validation set and sort the images accordingly in ascending order. For the precision calculation, we consider a candidate image as true positive if its clean label mismatches its original noisy label, and our model predicts it as not ``noisy free''. The rank-precision curve is plotted in Figure~\ref{fig:noise_prediction_rp}. It shows that our model can identify mislabeled samples quite well based on their image content, which verifies the observation that mislabeled images often share similar visual patterns.
 
 \begin{figure}[t]
 \begin{center}
 \includegraphics[width=1.0\linewidth]{figure/noise_prediction_rank_precision.pdf}
 \end{center}
-\caption{Rank-precision curve of label noise predictions}
+\caption{Rank-precision curve of label noise predictions. We rank the validation images from low to high according to their ``noise free'' probabilities. For the precision calculation, we consider a candidate image as true positive if its clean label mismatches its original noisy label, and our model predicts it as not ``noisy free''.}
 \label{fig:noise_prediction_rp}
 \end{figure}
 % subsection effect_of_noise_estimation (end) 
